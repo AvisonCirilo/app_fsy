@@ -98,17 +98,6 @@ class TelaLogin extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 15),
-
-                    // Usando nosso Botão Secundário (Escuro)
-                    /*MeuBotao(
-                    texto: 'SIGNUP',
-                    corFundo: const Color(0xFF222222), // Cinza quase preto
-                    corTexto: Colors.white,
-                    onTap: () {
-                      // Ação futura de criar conta
-                    },
-                  ),
-                  const SizedBox(height: 30),*/
                   ],
                 ),
               ),
