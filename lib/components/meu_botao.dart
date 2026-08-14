@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 class MeuBotao extends StatelessWidget {
   final String texto;
   final void Function()? onTap;
@@ -23,7 +24,7 @@ class MeuBotao extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               corFundo ??
-              const Color.fromARGB(255, 160, 240, 108), // Amarelo por padrão
+              const Color.fromARGB(255, 169, 241, 150), // Amarelo por padrão
           borderRadius: BorderRadius.circular(15),
         ),
         child: Center(

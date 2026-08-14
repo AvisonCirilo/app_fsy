@@ -11,12 +11,7 @@ class TelaLogin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(
-        255,
-        209,
-        252,
-        204,
-      ), // Fundo claro como na sua imagem
+      backgroundColor: const Color.fromARGB(255, 220, 255, 216), // Fundo claro como na sua imagem
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -47,17 +42,9 @@ class TelaLogin extends StatelessWidget {
                     const MeuCampoTexto(
                       hintText: 'Password',
                       obscureText: true,
-                      //icon: Icons.visibility_off,
+                     icon: Icons.key,
                     ),
                     const SizedBox(height: 10),
-
-                    /*SizedBox(
-                    width: 300,
-                    child: MeuCampoTexto(
-                      hintText: 'Senha', 
-                      obscureText: false,
-                    ),  
-                  ),*/
 
                     // Botão "Esqueceu a senha" alinhado à direita
                     Row(
