@@ -1,10 +1,10 @@
 import 'package:app_fsy/telas/abas/aba_perfil.dart';
 import 'package:flutter/material.dart';
 
-/*import './abas/aba_inicio.dart';
+import './abas/aba_inicio.dart';
 import './abas/aba_agenda.dart';
 import './abas/aba_jovens.dart';
-import './abas/aba_perfil.dart';*/
+//import './abas/aba_perfil.dart';
 
 class TelaInicial extends StatefulWidget {
   const TelaInicial({super.key});
@@ -20,9 +20,9 @@ class _TelaInicialState extends State<TelaInicial> {
   // Lista de "Telas" que vão aparecer no meio do aplicativo dependendo da aba escolhida
   final List<Widget> _secoes = [
     const AbaInicio(),
-    const SecaoAgenda(), // Índice 1
-    const SecaoJovens(), // Índice 2
-    const SecaoPerfil(), // Índice 3
+    const AbaAgenda(), // Índice 1
+    const AbaJovens(), // Índice 2
+    const AbaPerfil(), // Índice 3
   ];
 
   // Função que roda quando clicamos em um ícone da barra
@@ -45,7 +45,7 @@ class _TelaInicialState extends State<TelaInicial> {
           height: 40, // Altura limitada para não estourar o tamanho da barra
         ),
 
-        backgroundColor: const Color(0xFFFFC107), // Nosso Amarelo
+        backgroundColor: const Color.fromARGB(255, 220, 255, 216), //Verde
         foregroundColor: Colors.black,
         elevation: 1,
         actions: [
@@ -94,64 +94,6 @@ class _TelaInicialState extends State<TelaInicial> {
             label: 'Perfil',
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// Abaixo estão os "Tijolos" (Widgets) temporários para cada seção.
-// No futuro, colocaremos cada um desses em um arquivo separado na pasta 'telas'
-// ============================================================================
-
-/*class SecaoInicio extends StatelessWidget {
-  const SecaoInicio({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Aqui ficará o Feed de Avisos e Postagens',
-        style: TextStyle(fontSize: 16),
-      ),
-    );
-  }
-}*/
-
-class SecaoAgenda extends StatelessWidget {
-  const SecaoAgenda({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Aqui ficará o Cronograma do Evento',
-        style: TextStyle(fontSize: 16),
-      ),
-    );
-  }
-}
-
-class SecaoJovens extends StatelessWidget {
-  const SecaoJovens({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Aqui ficará a Lista dos Jovens da Companhia',
-        style: TextStyle(fontSize: 16),
-      ),
-    );
-  }
-}
-
-class SecaoPerfil extends StatelessWidget {
-  const SecaoPerfil({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ElevatedButton(
-        onPressed: () =>
-            Navigator.pop(context), // O botão de sair agora fica no perfil
-        child: const Text('Sair do Aplicativo'),
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class AbaInicio extends StatelessWidget {
-  const AbaInicio({super.key});
+class AbaPerfil extends StatelessWidget {
+  const AbaPerfil({super.key});
 
   @override
   Widget build(BuildContext context) {
