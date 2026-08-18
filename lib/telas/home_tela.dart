@@ -40,7 +40,12 @@ class _TelaInicialState extends State<TelaInicial> {
 
     // 1. Constrói as 4 abas normais para todos
     List<Widget> telasTemp = [
-      const AbaInicio(),
+      // === AQUI ESTÁ A MÁGICA DO CLIQUE ===
+      AbaInicio(
+        irParaAgenda: () {
+          _aoTocarNaAba(1); // O índice 1 representa a segunda aba (Agenda)
+        },
+      ),
       const AbaAgenda(),
       const AbaJovens(),
       const AbaPerfil(),
