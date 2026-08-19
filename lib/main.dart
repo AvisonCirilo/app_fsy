@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'telas/login_tela.dart';
-
-// Importe aqui as suas telas, por exemplo:
-// import 'telas/home_tela.dart'; 
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 // ==========================================
 // 1. O MENSAGEIRO GLOBAL DO TEMA
-// (Tem de ficar aqui em cima, fora de qualquer classe)
 // ==========================================
 final ValueNotifier<ThemeMode> temaGlobalNotifier = ValueNotifier(ThemeMode.light);
 
 void main() async {
-  // Garante que o Flutter está pronto para ler a memória do telemóvel antes de arrancar
+  // Garante que o Flutter está pronto para ler configurações nativas antes de arrancar
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 🔥 A IGNIÇÃO DO FIREBASE 🔥
+  // Inicia o motor do Firebase usando as chaves geradas pelo terminal
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   // Lê a memória para ver se o Jovem/Consultor deixou o Modo Escuro ligado da última vez
   final prefs = await SharedPreferences.getInstance();
@@ -25,14 +29,14 @@ void main() async {
   runApp(const FsyApp());
 }
 
+// ==========================================
+// A SUA CLASSE FsyApp CONTINUA EXATAMENTE IGUAL DAQUI PARA BAIXO...
+// ==========================================
 class FsyApp extends StatelessWidget {
   const FsyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // ==========================================
-    // 2. O OUVINTE: Fica à espera que o botão do perfil seja clicado
-    // ==========================================
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: temaGlobalNotifier,
       builder: (context, modoAtual, child) {
@@ -40,25 +44,19 @@ class FsyApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'App FSY',
-          
-          // 3. A MÁGICA: O tema do app muda automaticamente aqui!
           themeMode: modoAtual,
           
-          // --- CONFIGURAÇÃO DO MODO CLARO ---
           theme: ThemeData(
             brightness: Brightness.light,
             primarySwatch: Colors.blue,
-            scaffoldBackgroundColor: Colors.grey[50], // Fundo levemente cinza
+            scaffoldBackgroundColor: Colors.grey[50], 
           ),
           
-          // --- CONFIGURAÇÃO DO MODO ESCURO ---
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             primarySwatch: Colors.blue,
-            scaffoldBackgroundColor: const Color(0xFF121212), // Cinza super escuro (Padrão Premium)
-            cardColor: const Color(0xFF1E1E1E), // Cor dos cartões (Cards) no escuro
-            
-            // Define a cor azul padrão mesmo no modo escuro
+            scaffoldBackgroundColor: const Color(0xFF121212), 
+            cardColor: const Color(0xFF1E1E1E), 
             colorScheme: ColorScheme.fromSwatch(
               brightness: Brightness.dark,
               primarySwatch: Colors.blue,
@@ -67,8 +65,7 @@ class FsyApp extends StatelessWidget {
             ),
           ),
           
-          // ATENÇÃO: Substitua isto pela sua verdadeira tela inicial (a que tem a barra inferior de navegação)
-          home: const TelaLogin(), // Ex: const HomeTela()
+          home: const TelaLogin(), 
         );
       },
     );

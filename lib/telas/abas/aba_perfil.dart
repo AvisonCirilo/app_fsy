@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../main.dart';
 
 // IMPORTANTE: Altere este caminho para onde estiver o ficheiro da sua tela de Login!
-// Se estiver na pasta telas, normalmente é assim:
 import '../login_tela.dart'; 
 
 class AbaPerfil extends StatefulWidget {
@@ -19,7 +18,11 @@ class _AbaPerfilState extends State<AbaPerfil> {
   bool _editando = false;
   bool _modoEscuro = false;
   
+  // NOVO: Variável que define as permissões da tela!
+  bool _isAdmin = false; 
+  
   String? _caminhoFotoPerfil; 
+  String _generoSelecionado = 'Masculino'; 
 
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _funcaoController = TextEditingController();
@@ -42,8 +45,13 @@ class _AbaPerfilState extends State<AbaPerfil> {
   Future<void> _carregarPerfil() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
+      String funcaoSalva = prefs.getString('perfil_funcao') ?? "Consultor(a)";
+      
+      // A MÁGICA DA PERMISSÃO: Verifica se a pessoa logada é um Admin
+      _isAdmin = funcaoSalva.toLowerCase().contains('admin');
+
       _nomeController.text = prefs.getString('perfil_nome') ?? "Seu Nome Completo";
-      _funcaoController.text = prefs.getString('perfil_funcao') ?? "Consultor(a)";
+      _funcaoController.text = funcaoSalva;
       _companhiaController.text = prefs.getString('perfil_companhia') ?? "Companhia 00";
       
       _responsavelController.text = prefs.getString('perfil_responsavel') ?? "12";
@@ -53,6 +61,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
       _restricoesController.text = prefs.getString('perfil_restricoes') ?? "Nenhuma";
       
       _modoEscuro = prefs.getBool('config_modo_escuro') ?? false;
+      _generoSelecionado = prefs.getString('perfil_genero') ?? "Masculino"; 
       
       _caminhoFotoPerfil = prefs.getString('perfil_foto');
     });
@@ -71,6 +80,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
     await prefs.setString('perfil_restricoes', _restricoesController.text);
     
     await prefs.setBool('config_modo_escuro', _modoEscuro);
+    await prefs.setString('perfil_genero', _generoSelecionado); 
   }
 
   Future<void> _escolherFotoDaGaleria() async {
@@ -143,12 +153,92 @@ class _AbaPerfilState extends State<AbaPerfil> {
     );
   }
 
-  // --- NOVA FUNÇÃO: FAZER LOGOUT ---
+  void _mostrarPainelTrocarSenha(BuildContext context, bool isEscuro) {
+    final TextEditingController senhaAtualCtrl = TextEditingController();
+    final TextEditingController novaSenhaCtrl = TextEditingController();
+    final TextEditingController confirmarSenhaCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, 
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      backgroundColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24, right: 24, top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(10))),
+              const SizedBox(height: 20),
+              
+              const Icon(Icons.lock_reset, size: 50, color: Colors.blue),
+              const SizedBox(height: 10),
+              const Text("Trocar Senha", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+
+              _construirCampoSenha("Senha Atual", senhaAtualCtrl, isEscuro),
+              const SizedBox(height: 10),
+              _construirCampoSenha("Nova Senha", novaSenhaCtrl, isEscuro),
+              const SizedBox(height: 10),
+              _construirCampoSenha("Confirmar Nova Senha", confirmarSenhaCtrl, isEscuro),
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    if (novaSenhaCtrl.text.isEmpty || confirmarSenhaCtrl.text.isEmpty) return; 
+                    if (novaSenhaCtrl.text == confirmarSenhaCtrl.text) {
+                      Navigator.pop(context); 
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Senha alterada com sucesso!"), backgroundColor: Colors.green),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("As novas senhas não coincidem!"), backgroundColor: Colors.red),
+                      );
+                    }
+                  },
+                  child: const Text("Atualizar Senha", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _construirCampoSenha(String titulo, TextEditingController controller, bool isEscuro) {
+    return TextField(
+      controller: controller,
+      obscureText: true, 
+      style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
+      decoration: InputDecoration(
+        labelText: titulo,
+        labelStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: isEscuro ? Colors.black26 : Colors.grey.shade100,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+      ),
+    );
+  }
+
   void _sairDaConta() {
-    // Aqui usamos o comando que destrói o histórico de telas e joga para o Login
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const TelaLogin()), // Garanta que a sua classe de login tem este nome!
-      (Route<dynamic> route) => false, // Isto apaga todas as rotas anteriores
+      MaterialPageRoute(builder: (context) => const TelaLogin()), 
+      (Route<dynamic> route) => false, 
     );
   }
 
@@ -162,22 +252,34 @@ class _AbaPerfilState extends State<AbaPerfil> {
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              icon: Icon(
-                _editando ? Icons.check_circle : Icons.edit,
-                color: _editando ? Colors.green : Colors.grey,
-                size: 30,
+          
+          // ==========================================
+          // BOTÃO DE EDITAR (SÓ APARECE SE FOR ADMIN)
+          // ==========================================
+          if (_isAdmin)
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                icon: Icon(
+                  _editando ? Icons.check_circle : Icons.edit,
+                  color: _editando ? Colors.green : Colors.grey,
+                  size: 30,
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (_editando) {
+                      _salvarPerfil();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Perfil atualizado!"), backgroundColor: Colors.green),
+                      );
+                    }
+                    _editando = !_editando; 
+                  });
+                },
               ),
-              onPressed: () {
-                setState(() {
-                  if (_editando) _salvarPerfil();
-                  _editando = !_editando; 
-                });
-              },
-            ),
-          ),
+            )
+          else
+            const SizedBox(height: 48), // Espaço vazio para não estragar o alinhamento da foto quando o botão não existe!
 
           // ==========================================
           // 1. CABEÇALHO DO PERFIL (FOTO E NOME)
@@ -196,6 +298,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
                         ? const Icon(Icons.person, size: 65, color: Colors.white)
                         : null,
                   ),
+                  // A CÂMERA FICA SEMPRE ATIVA PARA TODOS!
                   Positioned(
                     bottom: 0, right: 0,
                     child: CircleAvatar(
@@ -234,6 +337,31 @@ class _AbaPerfilState extends State<AbaPerfil> {
                         style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
+              
+              const SizedBox(height: 10),
+
+              if (_editando)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _generoSelecionado,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.blue)),
+                    ),
+                    dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                    items: ['Masculino', 'Feminino'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value, style: TextStyle(color: corTextoPrincipal, fontSize: 14)),
+                      );
+                    }).toList(),
+                    onChanged: (novoValor) {
+                      setState(() => _generoSelecionado = novoValor!);
+                    },
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 30),
@@ -306,7 +434,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
           const SizedBox(height: 25),
 
           // ==========================================
-          // 4. CONFIGURAÇÕES DO APLICATIVO
+          // 4. SEGURANÇA E CONFIGURAÇÕES
           // ==========================================
           Align(
             alignment: Alignment.centerLeft,
@@ -317,11 +445,18 @@ class _AbaPerfilState extends State<AbaPerfil> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
               children: [
+                ListTile(
+                  leading: const Icon(Icons.lock_outline, color: Colors.blue),
+                  title: const Text("Trocar Senha", style: TextStyle(fontWeight: FontWeight.w500)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  onTap: () => _mostrarPainelTrocarSenha(context, isEscuro),
+                ),
+                const Divider(height: 1),
                 SwitchListTile(
                   secondary: const Icon(Icons.dark_mode, color: Colors.grey),
                   title: const Text("Modo Escuro"),
                   value: _modoEscuro,
-                  activeColor: Colors.grey,
+                  activeThumbColor: Colors.grey,
                   onChanged: (bool valor) {
                     setState(() => _modoEscuro = valor);
                     _salvarPerfil(); 
@@ -331,30 +466,30 @@ class _AbaPerfilState extends State<AbaPerfil> {
               ],
             ),
           ),
-          const SizedBox(height: 35), // Espaçamento extra
+          const SizedBox(height: 35),
 
           // ==========================================
           // 5. BOTÃO DE SAIR DA CONTA (LOGOUT)
           // ==========================================
           SizedBox(
-            width: double.infinity, // Ocupa a largura toda
+            width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _sairDaConta, // Chama a função de Logout
+              onPressed: _sairDaConta,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent.withValues(alpha: 0.1), // Fundo vermelho translúcido chique
-                foregroundColor: Colors.redAccent, // Texto vermelho
-                elevation: 0, // Sem sombra
+                backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                foregroundColor: Colors.redAccent, 
+                elevation: 0, 
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Colors.redAccent, width: 1.5), // Bordinha vermelha
+                  side: const BorderSide(color: Colors.redAccent, width: 1.5),
                 ),
               ),
               icon: const Icon(Icons.logout),
               label: const Text("Sair da Conta", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
-          const SizedBox(height: 30), // Espaçamento para o botão não colar no fundo do ecrã
+          const SizedBox(height: 30),
         ],
       ),
     );

@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import './abas/aba_inicio.dart';
 import './abas/aba_agenda.dart';
-import './abas/aba_jovens.dart';
+import 'abas/aba_companhia.dart';
 import './abas/aba_perfil.dart';
 import './abas/aba_admin.dart';
 
@@ -47,14 +47,14 @@ class _TelaInicialState extends State<TelaInicial> {
         },
       ),
       const AbaAgenda(),
-      const AbaJovens(),
+      const AbaCompanhia(),
       const AbaPerfil(),
     ];
 
     List<BottomNavigationBarItem> botoesTemp = [
       const BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Início'),
       const BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), activeIcon: Icon(Icons.calendar_month), label: 'Agenda'),
-      const BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), activeIcon: Icon(Icons.groups), label: 'Jovens'),
+      const BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), activeIcon: Icon(Icons.groups), label: 'Companhia'),
       const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
     ];
 

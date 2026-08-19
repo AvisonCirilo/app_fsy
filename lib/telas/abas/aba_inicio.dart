@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AbaInicio extends StatefulWidget {
-  final VoidCallback? irParaAgenda; // NOVO: Canal de comunicação com a barra inferior!
+  final VoidCallback? irParaAgenda;
   const AbaInicio({super.key, this.irParaAgenda});
 
   @override
@@ -16,8 +16,12 @@ class _AbaInicioState extends State<AbaInicio> {
   Timer? _relogio;
   DateTime _horaAtual = DateTime.now();
   int _diaAtual = 1;
+  
+  // NOVO: Variável para guardar se é Consultor ou Consultora
+  String _generoConsultor = ""; 
 
   final List<Map<String, dynamic>> _todosEventos = [
+    // ... (A sua lista enorme de eventos mantem-se intacta!) ...
     {"id": "0_1", "dia": 0, "horarioInicial": "19:00", "horarioFinal": "20:00", "titulo": "Mensagem do casal diretor", "cor": Colors.deepPurple, "concluido": false},
     {"id": "0_2", "dia": 0, "horarioInicial": "20:15", "horarioFinal": "21:15", "titulo": "Reuniões CA e Consultores", "cor": Colors.deepPurple, "concluido": false},
     {"id": "0_3", "dia": 0, "horarioInicial": "21:20", "horarioFinal": "21:50", "titulo": "Reunião de Coordenadores", "cor": Colors.deepPurple, "concluido": false},
@@ -102,7 +106,7 @@ class _AbaInicioState extends State<AbaInicio> {
   @override
   void initState() {
     super.initState();
-    _carregarNotas();
+    _carregarDadosBase(); // Carrega as notas e o Género do Consultor!
     _sincronizarComAgenda();
     
     _relogio = Timer.periodic(const Duration(minutes: 1), (Timer t) {
@@ -119,9 +123,14 @@ class _AbaInicioState extends State<AbaInicio> {
     super.dispose();
   }
 
-  Future<void> _carregarNotas() async {
+  // --- BUSCA DADOS LOCAIS (GÉNERO E NOTAS) ---
+  Future<void> _carregarDadosBase() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _notasController.text = prefs.getString('notas_consultor') ?? "");
+    setState(() {
+      _notasController.text = prefs.getString('notas_consultor') ?? "";
+      // Procura o género salvo no telemóvel. Se não tiver, usa "Masculino" como padrão para testarmos.
+      _generoConsultor = prefs.getString('perfil_genero') ?? "Masculino";
+    });
   }
 
   Future<void> _salvarNotas(String texto) async {
@@ -146,11 +155,97 @@ class _AbaInicioState extends State<AbaInicio> {
 
   int _horaParaMin(String h) => int.parse(h.split(":")[0]) * 60 + int.parse(h.split(":")[1]);
 
+  // --- A NOVA FUNÇÃO: ABRE A FICHA DO JOVEM ---
+  void _abrirFichaDoJovem(Map<String, String> jovem, bool isEscuro, Color corTema) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      backgroundColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Tracinho cinza no topo
+              Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(10))),
+              const SizedBox(height: 20),
+              
+              // Foto com a cor do tema (Azul ou Rosa)
+              CircleAvatar(
+                radius: 40, 
+                backgroundColor: corTema.withValues(alpha: 0.2), 
+                child: Text(jovem["foto"]!, style: TextStyle(fontSize: 35, color: corTema, fontWeight: FontWeight.bold))
+              ),
+              const SizedBox(height: 15),
+              
+              // Nome e Idade
+              Text(jovem["nome"]!, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(jovem["idade"]!, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 25),
+              
+              // Informações médicas e quarto
+              Card(
+                elevation: 0, color: isEscuro ? Colors.black26 : Colors.grey.shade100, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                child: Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: Column(
+                    children: [
+                      _linhaDeInformacao(Icons.hotel, "Alojamento", jovem["quarto"]!, corTema),
+                      const Divider(),
+                      _linhaDeInformacao(Icons.warning_amber_rounded, "Saúde/Dieta", jovem["restricoes"]!, Colors.orange),
+                      const Divider(),
+                      _linhaDeInformacao(Icons.edit_note, "Observação", jovem["obs"]!, Colors.green),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // WIDGET AUXILIAR PARA A FICHA
+  Widget _linhaDeInformacao(IconData icone, String titulo, String valor, Color cor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icone, color: cor, size: 24),
+        const SizedBox(width: 15),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(titulo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 2),
+          Text(valor, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        ])),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     Color corTextoSecundario = isEscuro ? Colors.white70 : Colors.black54;
 
+    // --- LÓGICA DE GÉNERO ---
+    String tituloJovens = "Meus Jovens";
+    Color corIconeJovens = Colors.blue;
+    IconData iconeJovens = Icons.people;
+
+    if (_generoConsultor.toLowerCase().contains("fem") || _generoConsultor.toLowerCase().contains("mulher")) {
+      tituloJovens = "Minhas Moças";
+      corIconeJovens = Colors.pinkAccent;
+      iconeJovens = Icons.face_3; // Ícone Feminino
+    } else if (_generoConsultor.toLowerCase().contains("masc") || _generoConsultor.toLowerCase().contains("homem")) {
+      tituloJovens = "Meus Rapazes";
+      corIconeJovens = Colors.blue;
+      iconeJovens = Icons.face; // Ícone Masculino
+    }
+
+    // --- LÓGICA DO RELÓGIO DA AGENDA ---
     int minAgora = _horaAtual.hour * 60 + _horaAtual.minute;
     Map<String, dynamic>? eventoAgora;
     Map<String, dynamic>? eventoProximo;
@@ -205,7 +300,7 @@ class _AbaInicioState extends State<AbaInicio> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("O Meu Bloco de Notas", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text("Anotações", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               Icon(Icons.edit_note, color: corTextoSecundario),
             ],
           ),
@@ -214,16 +309,25 @@ class _AbaInicioState extends State<AbaInicio> {
             decoration: BoxDecoration(color: isEscuro ? const Color(0xFF2A2A2A) : const Color(0xFFFFF9C4), borderRadius: BorderRadius.circular(12), border: Border.all(color: isEscuro ? Colors.white12 : Colors.yellow.shade600, width: 1)),
             child: TextField(
               controller: _notasController, maxLines: 4, onChanged: _salvarNotas, style: TextStyle(fontSize: 15, color: isEscuro ? Colors.white : Colors.black87),
-              decoration: InputDecoration(hintText: "Escreva aqui os avisos para a sua companhia, impressões ou lembretes...", hintStyle: TextStyle(color: isEscuro ? Colors.white30 : Colors.black38), border: InputBorder.none, contentPadding: const EdgeInsets.all(15)),
+              decoration: InputDecoration(hintText: "Escreva aqui os avisos, impressões ou lembretes...", hintStyle: TextStyle(color: isEscuro ? Colors.white30 : Colors.black38), border: InputBorder.none, contentPadding: const EdgeInsets.all(15)),
             ),
           ),
           const SizedBox(height: 30),
 
+          // ==========================================
+          // A NOVA LISTA DINÂMICA DE JOVENS
+          // ==========================================
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Os Meus Jovens", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text("${_meusJovens.length} jovens", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Icon(iconeJovens, color: corIconeJovens, size: 22),
+                  const SizedBox(width: 8),
+                  Text(tituloJovens, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Text("${_meusJovens.length} jovens", style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 10),
@@ -232,11 +336,16 @@ class _AbaInicioState extends State<AbaInicio> {
             return Card(
               elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)), color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
               child: ListTile(
-                leading: CircleAvatar(backgroundColor: Colors.blue.withValues(alpha: 0.15), child: Text(jovem["foto"]!, style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
+                leading: CircleAvatar(
+                  backgroundColor: corIconeJovens.withValues(alpha: 0.15), // Fundo da foto ganha a cor do tema!
+                  child: Text(jovem["foto"]!, style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold))
+                ),
                 title: Text(jovem["nome"]!, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(jovem["quarto"]!, style: TextStyle(color: corTextoSecundario, fontSize: 12)),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                onTap: () {},
+                
+                // NOVO: Ao clicar, abre o BottomSheet com a ficha!
+                onTap: () => _abrirFichaDoJovem(jovem, isEscuro, corIconeJovens),
               ),
             );
           }),
@@ -247,9 +356,8 @@ class _AbaInicioState extends State<AbaInicio> {
   }
 
   Widget _construirBloco(String tituloCard, Map<String, dynamic> evento, Color corPrincipal, Color corSecundaria, IconData icone) {
-    // NOVO: Adicionado o GestureDetector que aciona a mudança de aba!
     return GestureDetector(
-      onTap: widget.irParaAgenda, // <--- A MAGIA DO CLIQUE ESTÁ AQUI
+      onTap: widget.irParaAgenda, 
       child: Container(
         height: 160, padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(gradient: LinearGradient(colors: [corPrincipal, corSecundaria], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: corPrincipal.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]),
@@ -272,9 +380,8 @@ class _AbaInicioState extends State<AbaInicio> {
   }
 
   Widget _construirBlocoVazio(String tituloCard, String mensagem, Color corFundo) {
-    // NOVO: Também permite clicar quando estiver vazio para ver a agenda completa
     return GestureDetector(
-      onTap: widget.irParaAgenda, // <--- A MAGIA DO CLIQUE ESTÁ AQUI
+      onTap: widget.irParaAgenda,
       child: Container(
         height: 160, padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: corFundo.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(20)),
