@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import './admin/gerenciar_usuarios.dart';
+import 'admin/lista_jovens.dart';
 
 class AbaAdmin extends StatefulWidget {
   const AbaAdmin({super.key});
@@ -20,10 +22,10 @@ class _AbaAdminState extends State<AbaAdmin> {
     final TextEditingController nomeController = TextEditingController();
     final TextEditingController idadeController = TextEditingController();
     final TextEditingController saudeController = TextEditingController();
-    final TextEditingController medicamentoController = TextEditingController(); // NOVO: Controlador para o medicamento
+    final TextEditingController medicamentoController = TextEditingController(); 
     
     String generoSelecionado = "Masculino";
-    bool membroIgreja = true; // Começa como verdadeiro por padrão
+    bool membroIgreja = true; 
     
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
 
@@ -65,7 +67,7 @@ class _AbaAdminState extends State<AbaAdmin> {
                     _construirCampoAdmin("Nome Completo", nomeController, Icons.badge, isEscuro, TextInputType.name),
                     const SizedBox(height: 15),
                     
-                    // 2. GÉNERO E IDADE (Na mesma linha para poupar espaço)
+                    // 2. GÉNERO E IDADE 
                     Row(
                       children: [
                         Expanded(
@@ -159,7 +161,7 @@ class _AbaAdminState extends State<AbaAdmin> {
 
   Widget _construirDropdown(String label, List<String> itens, String valorAtual, bool isEscuro, Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      initialValue: valorAtual, // Usando value ao invés de initialValue para atualizar corretamente no state
+      value: valorAtual, // Usar value em vez de initialValue para atualizar a UI corretamente
       dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white, 
       style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
       decoration: InputDecoration(
@@ -179,17 +181,22 @@ class _AbaAdminState extends State<AbaAdmin> {
   // ==========================================
   
   void _abrirTelaGerenciarUsuarios() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => Scaffold(
-      appBar: AppBar(title: const Text("Gerenciar Usuários")),
-      body: const Center(child: Text("Tela de Edição de Dados e Senhas em construção...")),
-    )));
+    Navigator.push(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => const GerenciarUsuarios() 
+      )
+    );
   }
 
+  // <-- NAVEGAÇÃO CORRIGIDA AQUI! -->
   void _abrirTelaListaJovens() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => Scaffold(
-      appBar: AppBar(title: const Text("Visualização de Jovens")),
-      body: const Center(child: Text("Lista de jovens (A-Z) e Barra de Pesquisa em construção...")),
-    )));
+    Navigator.push(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => const ListaJovensTela()
+      )
+    );
   }
 
   void _abrirTelaGerenciarCompanhias() {
@@ -227,9 +234,13 @@ class _AbaAdminState extends State<AbaAdmin> {
 
           Text("Gestão de Pessoas", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: corTextoSecundario, letterSpacing: 1.2)),
           const SizedBox(height: 10),
+          
           _construirBotaoAcao(Icons.person_add, "Adicionar Jovem", "Adicionar novo jovem ao sistema", Colors.blue, isEscuro, _mostrarPainelCriarCadastro),
           _construirBotaoAcao(Icons.manage_accounts, "Gerenciar Usuários", "Editar dados, alterar acessos e redefinir senhas", Colors.orange, isEscuro, _abrirTelaGerenciarUsuarios),
+          
+          // Este botão agora vai abrir a lista correta
           _construirBotaoAcao(Icons.format_list_bulleted, "Lista de Jovens", "Pesquisar e visualizar todos os cadastrados", Colors.green, isEscuro, _abrirTelaListaJovens),
+          
           const SizedBox(height: 25),
 
           Text("Organização & Logística", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: corTextoSecundario, letterSpacing: 1.2)),
