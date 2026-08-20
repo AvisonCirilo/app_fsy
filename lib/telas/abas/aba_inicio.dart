@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // NOVO: Importação do Firestore
 
 class AbaInicio extends StatefulWidget {
   final VoidCallback? irParaAgenda;
@@ -97,17 +98,6 @@ class _AbaInicioState extends State<AbaInicio> {
     {"id": "5_9", "dia": 5, "horarioInicial": "14:00", "horarioFinal": "15:00", "titulo": "Saída dos Participantes", "cor": Colors.blueGrey, "concluido": false},
   ];
 
-  // Banco centralizado (simulando o banco de dados geral)
-  final List<Map<String, String>> _bancoJovensGeral = [
-    {"nome": "João Silva", "idade": "16 anos", "quarto": "Bloco B - 204", "restricoes": "Nenhuma", "obs": "Gosta muito de tocar violão.", "foto": "J", "consultor": "Consultor Teste"},
-    {"nome": "Lucas Almeida", "idade": "17 anos", "quarto": "Bloco B - 204", "restricoes": "Intolerância à Lactose", "obs": "Um pouco tímido, trazer para as conversas.", "foto": "L", "consultor": "Consultor Teste"},
-    {"nome": "Pedro Costa", "idade": "15 anos", "quarto": "Bloco B - 205", "restricoes": "Alergia a Amendoim", "obs": "Líder natural, ótimo para puxar o grito de guerra.", "foto": "P", "consultor": "Consultor Teste"},
-    {"nome": "Ana Clara", "idade": "15 anos", "quarto": "Bloco A - 101", "restricoes": "Nenhuma", "obs": "Excelente cantora.", "foto": "A", "consultor": "Outra Pessoa"},
-  ];
-
-  // Esta será a lista final apresentada na tela após o filtro
-  List<Map<String, String>> _meusJovensFiltrados = [];
-
   @override
   void initState() {
     super.initState();
@@ -128,7 +118,7 @@ class _AbaInicioState extends State<AbaInicio> {
     super.dispose();
   }
 
-  // --- BUSCA DADOS LOCAIS E FILTRA OS JOVENS ---
+  // --- BUSCA DADOS LOCAIS (GÉNERO E NOME) ---
   Future<void> _carregarDadosBase() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -136,15 +126,6 @@ class _AbaInicioState extends State<AbaInicio> {
       _generoConsultor = prefs.getString('perfil_genero') ?? "Masculino";
       _nomeConsultorLogado = prefs.getString('perfil_nome') ?? "Consultor Teste";
       _funcaoLogada = prefs.getString('perfil_funcao') ?? "Consultor";
-
-      // Filtra os jovens: Apenas quem pertence a este consultor aparece!
-      if (_funcaoLogada != 'Administrador') {
-        _meusJovensFiltrados = _bancoJovensGeral
-            .where((jovem) => jovem['consultor'] == _nomeConsultorLogado)
-            .toList();
-      } else {
-        _meusJovensFiltrados = []; // O Admin não possui jovens diretos
-      }
     });
   }
 
@@ -170,7 +151,8 @@ class _AbaInicioState extends State<AbaInicio> {
 
   int _horaParaMin(String h) => int.parse(h.split(":")[0]) * 60 + int.parse(h.split(":")[1]);
 
-  void _abrirFichaDoJovem(Map<String, String> jovem, bool isEscuro, Color corTema) {
+  // --- A FICHA DO JOVEM (AGORA COM OS DADOS REAIS DO FIREBASE) ---
+  void _abrirFichaDoJovem(Map<String, dynamic> jovem, bool isEscuro, Color corTema) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -188,12 +170,12 @@ class _AbaInicioState extends State<AbaInicio> {
               CircleAvatar(
                 radius: 40, 
                 backgroundColor: corTema.withValues(alpha: 0.2), 
-                child: Text(jovem["foto"]!, style: TextStyle(fontSize: 35, color: corTema, fontWeight: FontWeight.bold))
+                child: Text(jovem["nome"][0].toUpperCase(), style: TextStyle(fontSize: 35, color: corTema, fontWeight: FontWeight.bold))
               ),
               const SizedBox(height: 15),
               
-              Text(jovem["nome"]!, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              Text(jovem["idade"]!, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+              Text(jovem["nome"], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text("${jovem["idade"]} anos", style: const TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 25),
               
               Card(
@@ -202,11 +184,11 @@ class _AbaInicioState extends State<AbaInicio> {
                   padding: const EdgeInsets.all(15.0),
                   child: Column(
                     children: [
-                      _linhaDeInformacao(Icons.hotel, "Alojamento", jovem["quarto"]!, corTema),
+                      _linhaDeInformacao(Icons.hotel, "Alojamento", jovem["quarto"].toString().isNotEmpty ? jovem["quarto"] : "A Definir", corTema),
                       const Divider(),
-                      _linhaDeInformacao(Icons.warning_amber_rounded, "Saúde/Dieta", jovem["restricoes"]!, Colors.orange),
+                      _linhaDeInformacao(Icons.warning_amber_rounded, "Saúde/Dieta", jovem["saude"], Colors.orange),
                       const Divider(),
-                      _linhaDeInformacao(Icons.edit_note, "Observação", jovem["obs"]!, Colors.green),
+                      _linhaDeInformacao(Icons.medication, "Medicamentos", jovem["medicamento"].toString().isNotEmpty ? jovem["medicamento"] : "Nenhum", Colors.green),
                     ],
                   ),
                 ),
@@ -324,7 +306,7 @@ class _AbaInicioState extends State<AbaInicio> {
           const SizedBox(height: 30),
 
           // ==========================================
-          // A NOVA LISTA DINÂMICA DE JOVENS NA ABA INICIAL
+          // A NOVA LISTA DINÂMICA (LÊ DIRETAMENTE DO FIRESTORE)
           // ==========================================
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -345,29 +327,53 @@ class _AbaInicioState extends State<AbaInicio> {
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Text("Como Administrador, você não possui jovens diretos. Utilize a aba Liderança para gerenciar todos.", style: TextStyle(fontStyle: FontStyle.italic)),
             )
-          else if (_meusJovensFiltrados.isEmpty)
-             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Text("Nenhum jovem associado a você ainda. A liderança fará a alocação em breve."),
-            )
           else
-            ..._meusJovensFiltrados.map((jovem) {
-              return Card(
-                elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)), color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: corIconeJovens.withValues(alpha: 0.15),
-                    child: Text(jovem["foto"]!, style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold))
-                  ),
-                  title: Text(jovem["nome"]!, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(jovem["quarto"]!, style: TextStyle(color: corTextoSecundario, fontSize: 12)),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                  
-                  // Abre a ficha interativa com os detalhes completos!
-                  onTap: () => _abrirFichaDoJovem(jovem, isEscuro, corIconeJovens),
-                ),
-              );
-            }),
+            StreamBuilder<QuerySnapshot>(
+              // LÊ APENAS OS JOVENS CUJO NOME DO CONSULTOR É IGUAL AO QUE FEZ LOGIN
+              stream: FirebaseFirestore.instance
+                  .collection('jovens')
+                  .where('consultor', isEqualTo: _nomeConsultorLogado)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Text("Nenhum jovem associado a você ainda. A liderança fará a alocação em breve."),
+                  );
+                }
+
+                // Cria a lista de Cards com os dados que vieram do banco
+                final jovens = snapshot.data!.docs;
+
+                return ListView.builder(
+                  shrinkWrap: true, // Importante para não dar erro dentro do SingleChildScrollView
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: jovens.length,
+                  itemBuilder: (context, index) {
+                    final jovem = jovens[index].data() as Map<String, dynamic>;
+                    
+                    return Card(
+                      elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)), color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: corIconeJovens.withValues(alpha: 0.15),
+                          child: Text(jovem["nome"][0].toUpperCase(), style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold))
+                        ),
+                        title: Text(jovem["nome"], style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(jovem["quarto"].toString().isNotEmpty ? "Quarto: ${jovem['quarto']}" : "Quarto: A Definir", style: TextStyle(color: corTextoSecundario, fontSize: 12)),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                        
+                        onTap: () => _abrirFichaDoJovem(jovem, isEscuro, corIconeJovens),
+                      ),
+                    );
+                  },
+                );
+              }
+            ),
           
           const SizedBox(height: 20),
         ],
