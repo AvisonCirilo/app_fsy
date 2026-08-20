@@ -161,7 +161,7 @@ class _AbaAdminState extends State<AbaAdmin> {
 
   Widget _construirDropdown(String label, List<String> itens, String valorAtual, bool isEscuro, Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      value: valorAtual, // Usar value em vez de initialValue para atualizar a UI corretamente
+      initialValue: valorAtual, // Usar value em vez de initialValue para atualizar a UI corretamente
       dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white, 
       style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
       decoration: InputDecoration(

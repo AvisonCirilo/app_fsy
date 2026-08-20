@@ -84,7 +84,7 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                     const SizedBox(height: 15),
                     
                     DropdownButtonFormField<String>(
-                      value: funcaoSelecionada,
+                      initialValue: funcaoSelecionada,
                       dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
                       style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
                       icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade700),

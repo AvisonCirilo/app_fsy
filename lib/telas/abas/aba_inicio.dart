@@ -17,11 +17,11 @@ class _AbaInicioState extends State<AbaInicio> {
   DateTime _horaAtual = DateTime.now();
   int _diaAtual = 1;
   
-  // NOVO: Variável para guardar se é Consultor ou Consultora
   String _generoConsultor = ""; 
+  String _nomeConsultorLogado = ""; 
+  String _funcaoLogada = "";
 
   final List<Map<String, dynamic>> _todosEventos = [
-    // ... (A sua lista enorme de eventos mantem-se intacta!) ...
     {"id": "0_1", "dia": 0, "horarioInicial": "19:00", "horarioFinal": "20:00", "titulo": "Mensagem do casal diretor", "cor": Colors.deepPurple, "concluido": false},
     {"id": "0_2", "dia": 0, "horarioInicial": "20:15", "horarioFinal": "21:15", "titulo": "Reuniões CA e Consultores", "cor": Colors.deepPurple, "concluido": false},
     {"id": "0_3", "dia": 0, "horarioInicial": "21:20", "horarioFinal": "21:50", "titulo": "Reunião de Coordenadores", "cor": Colors.deepPurple, "concluido": false},
@@ -97,16 +97,21 @@ class _AbaInicioState extends State<AbaInicio> {
     {"id": "5_9", "dia": 5, "horarioInicial": "14:00", "horarioFinal": "15:00", "titulo": "Saída dos Participantes", "cor": Colors.blueGrey, "concluido": false},
   ];
 
-  final List<Map<String, String>> _meusJovens = [
-    {"nome": "João Silva", "idade": "16 anos", "quarto": "Bloco B - 204", "restricoes": "Nenhuma", "obs": "Gosta muito de tocar violão.", "foto": "J"},
-    {"nome": "Lucas Almeida", "idade": "17 anos", "quarto": "Bloco B - 204", "restricoes": "Intolerância à Lactose", "obs": "Um pouco tímido, trazer para as conversas.", "foto": "L"},
-    {"nome": "Pedro Costa", "idade": "15 anos", "quarto": "Bloco B - 205", "restricoes": "Alergia a Amendoim", "obs": "Líder natural, ótimo para puxar o grito de guerra.", "foto": "P"},
+  // Banco centralizado (simulando o banco de dados geral)
+  final List<Map<String, String>> _bancoJovensGeral = [
+    {"nome": "João Silva", "idade": "16 anos", "quarto": "Bloco B - 204", "restricoes": "Nenhuma", "obs": "Gosta muito de tocar violão.", "foto": "J", "consultor": "Consultor Teste"},
+    {"nome": "Lucas Almeida", "idade": "17 anos", "quarto": "Bloco B - 204", "restricoes": "Intolerância à Lactose", "obs": "Um pouco tímido, trazer para as conversas.", "foto": "L", "consultor": "Consultor Teste"},
+    {"nome": "Pedro Costa", "idade": "15 anos", "quarto": "Bloco B - 205", "restricoes": "Alergia a Amendoim", "obs": "Líder natural, ótimo para puxar o grito de guerra.", "foto": "P", "consultor": "Consultor Teste"},
+    {"nome": "Ana Clara", "idade": "15 anos", "quarto": "Bloco A - 101", "restricoes": "Nenhuma", "obs": "Excelente cantora.", "foto": "A", "consultor": "Outra Pessoa"},
   ];
+
+  // Esta será a lista final apresentada na tela após o filtro
+  List<Map<String, String>> _meusJovensFiltrados = [];
 
   @override
   void initState() {
     super.initState();
-    _carregarDadosBase(); // Carrega as notas e o Género do Consultor!
+    _carregarDadosBase(); 
     _sincronizarComAgenda();
     
     _relogio = Timer.periodic(const Duration(minutes: 1), (Timer t) {
@@ -123,13 +128,23 @@ class _AbaInicioState extends State<AbaInicio> {
     super.dispose();
   }
 
-  // --- BUSCA DADOS LOCAIS (GÉNERO E NOTAS) ---
+  // --- BUSCA DADOS LOCAIS E FILTRA OS JOVENS ---
   Future<void> _carregarDadosBase() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _notasController.text = prefs.getString('notas_consultor') ?? "";
-      // Procura o género salvo no telemóvel. Se não tiver, usa "Masculino" como padrão para testarmos.
       _generoConsultor = prefs.getString('perfil_genero') ?? "Masculino";
+      _nomeConsultorLogado = prefs.getString('perfil_nome') ?? "Consultor Teste";
+      _funcaoLogada = prefs.getString('perfil_funcao') ?? "Consultor";
+
+      // Filtra os jovens: Apenas quem pertence a este consultor aparece!
+      if (_funcaoLogada != 'Administrador') {
+        _meusJovensFiltrados = _bancoJovensGeral
+            .where((jovem) => jovem['consultor'] == _nomeConsultorLogado)
+            .toList();
+      } else {
+        _meusJovensFiltrados = []; // O Admin não possui jovens diretos
+      }
     });
   }
 
@@ -155,7 +170,6 @@ class _AbaInicioState extends State<AbaInicio> {
 
   int _horaParaMin(String h) => int.parse(h.split(":")[0]) * 60 + int.parse(h.split(":")[1]);
 
-  // --- A NOVA FUNÇÃO: ABRE A FICHA DO JOVEM ---
   void _abrirFichaDoJovem(Map<String, String> jovem, bool isEscuro, Color corTema) {
     showModalBottomSheet(
       context: context,
@@ -168,11 +182,9 @@ class _AbaInicioState extends State<AbaInicio> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Tracinho cinza no topo
               Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(10))),
               const SizedBox(height: 20),
               
-              // Foto com a cor do tema (Azul ou Rosa)
               CircleAvatar(
                 radius: 40, 
                 backgroundColor: corTema.withValues(alpha: 0.2), 
@@ -180,12 +192,10 @@ class _AbaInicioState extends State<AbaInicio> {
               ),
               const SizedBox(height: 15),
               
-              // Nome e Idade
               Text(jovem["nome"]!, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               Text(jovem["idade"]!, style: const TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 25),
               
-              // Informações médicas e quarto
               Card(
                 elevation: 0, color: isEscuro ? Colors.black26 : Colors.grey.shade100, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 child: Padding(
@@ -209,7 +219,6 @@ class _AbaInicioState extends State<AbaInicio> {
     );
   }
 
-  // WIDGET AUXILIAR PARA A FICHA
   Widget _linhaDeInformacao(IconData icone, String titulo, String valor, Color cor) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,11 +247,11 @@ class _AbaInicioState extends State<AbaInicio> {
     if (_generoConsultor.toLowerCase().contains("fem") || _generoConsultor.toLowerCase().contains("mulher")) {
       tituloJovens = "Minhas Moças";
       corIconeJovens = Colors.pinkAccent;
-      iconeJovens = Icons.face_3; // Ícone Feminino
+      iconeJovens = Icons.face_3; 
     } else if (_generoConsultor.toLowerCase().contains("masc") || _generoConsultor.toLowerCase().contains("homem")) {
       tituloJovens = "Meus Rapazes";
       corIconeJovens = Colors.blue;
-      iconeJovens = Icons.face; // Ícone Masculino
+      iconeJovens = Icons.face; 
     }
 
     // --- LÓGICA DO RELÓGIO DA AGENDA ---
@@ -315,7 +324,7 @@ class _AbaInicioState extends State<AbaInicio> {
           const SizedBox(height: 30),
 
           // ==========================================
-          // A NOVA LISTA DINÂMICA DE JOVENS
+          // A NOVA LISTA DINÂMICA DE JOVENS NA ABA INICIAL
           // ==========================================
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -327,28 +336,39 @@ class _AbaInicioState extends State<AbaInicio> {
                   Text(tituloJovens, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
-              Text("${_meusJovens.length} jovens", style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 10),
           
-          ..._meusJovens.map((jovem) {
-            return Card(
-              elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)), color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: corIconeJovens.withValues(alpha: 0.15), // Fundo da foto ganha a cor do tema!
-                  child: Text(jovem["foto"]!, style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold))
+          if (_funcaoLogada == 'Administrador')
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text("Como Administrador, você não possui jovens diretos. Utilize a aba Liderança para gerenciar todos.", style: TextStyle(fontStyle: FontStyle.italic)),
+            )
+          else if (_meusJovensFiltrados.isEmpty)
+             const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text("Nenhum jovem associado a você ainda. A liderança fará a alocação em breve."),
+            )
+          else
+            ..._meusJovensFiltrados.map((jovem) {
+              return Card(
+                elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)), color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: corIconeJovens.withValues(alpha: 0.15),
+                    child: Text(jovem["foto"]!, style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold))
+                  ),
+                  title: Text(jovem["nome"]!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(jovem["quarto"]!, style: TextStyle(color: corTextoSecundario, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  
+                  // Abre a ficha interativa com os detalhes completos!
+                  onTap: () => _abrirFichaDoJovem(jovem, isEscuro, corIconeJovens),
                 ),
-                title: Text(jovem["nome"]!, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(jovem["quarto"]!, style: TextStyle(color: corTextoSecundario, fontSize: 12)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                
-                // NOVO: Ao clicar, abre o BottomSheet com a ficha!
-                onTap: () => _abrirFichaDoJovem(jovem, isEscuro, corIconeJovens),
-              ),
-            );
-          }),
+              );
+            }),
+          
           const SizedBox(height: 20),
         ],
       ),
