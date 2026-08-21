@@ -2,7 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // NOVO: Importação do Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Importa as telas administrativas para criar atalhos para os líderes
+import 'admin/lista_jovens.dart';
+import 'admin/gerenciar_companhias.dart';
 
 class AbaInicio extends StatefulWidget {
   final VoidCallback? irParaAgenda;
@@ -118,7 +122,6 @@ class _AbaInicioState extends State<AbaInicio> {
     super.dispose();
   }
 
-  // --- BUSCA DADOS LOCAIS (GÉNERO E NOME) ---
   Future<void> _carregarDadosBase() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -137,6 +140,7 @@ class _AbaInicioState extends State<AbaInicio> {
   Future<void> _sincronizarComAgenda() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() { _diaAtual = prefs.getInt('diaSalvo') ?? 1; });
+    
     final String? modJson = prefs.getString('eventos_modificados');
     if (modJson != null) {
       Map<String, dynamic> mods = jsonDecode(modJson);
@@ -151,7 +155,6 @@ class _AbaInicioState extends State<AbaInicio> {
 
   int _horaParaMin(String h) => int.parse(h.split(":")[0]) * 60 + int.parse(h.split(":")[1]);
 
-  // --- A FICHA DO JOVEM (AGORA COM OS DADOS REAIS DO FIREBASE) ---
   void _abrirFichaDoJovem(Map<String, dynamic> jovem, bool isEscuro, Color corTema) {
     showModalBottomSheet(
       context: context,
@@ -166,18 +169,11 @@ class _AbaInicioState extends State<AbaInicio> {
             children: [
               Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(10))),
               const SizedBox(height: 20),
-              
-              CircleAvatar(
-                radius: 40, 
-                backgroundColor: corTema.withValues(alpha: 0.2), 
-                child: Text(jovem["nome"][0].toUpperCase(), style: TextStyle(fontSize: 35, color: corTema, fontWeight: FontWeight.bold))
-              ),
+              CircleAvatar(radius: 40, backgroundColor: corTema.withValues(alpha: 0.2), child: Text(jovem["nome"][0].toUpperCase(), style: TextStyle(fontSize: 35, color: corTema, fontWeight: FontWeight.bold))),
               const SizedBox(height: 15),
-              
               Text(jovem["nome"], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               Text("${jovem["idade"]} anos", style: const TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 25),
-              
               Card(
                 elevation: 0, color: isEscuro ? Colors.black26 : Colors.grey.shade100, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 child: Padding(
@@ -207,11 +203,7 @@ class _AbaInicioState extends State<AbaInicio> {
       children: [
         Icon(icone, color: cor, size: 24),
         const SizedBox(width: 15),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(titulo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 2),
-          Text(valor, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-        ])),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(titulo, style: const TextStyle(fontSize: 12, color: Colors.grey)), const SizedBox(height: 2), Text(valor, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500))])),
       ],
     );
   }
@@ -221,37 +213,16 @@ class _AbaInicioState extends State<AbaInicio> {
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     Color corTextoSecundario = isEscuro ? Colors.white70 : Colors.black54;
 
-    // --- LÓGICA DE GÉNERO ---
-    String tituloJovens = "Meus Jovens";
-    Color corIconeJovens = Colors.blue;
-    IconData iconeJovens = Icons.people;
-
-    if (_generoConsultor.toLowerCase().contains("fem") || _generoConsultor.toLowerCase().contains("mulher")) {
-      tituloJovens = "Minhas Moças";
-      corIconeJovens = Colors.pinkAccent;
-      iconeJovens = Icons.face_3; 
-    } else if (_generoConsultor.toLowerCase().contains("masc") || _generoConsultor.toLowerCase().contains("homem")) {
-      tituloJovens = "Meus Rapazes";
-      corIconeJovens = Colors.blue;
-      iconeJovens = Icons.face; 
-    }
-
-    // --- LÓGICA DO RELÓGIO DA AGENDA ---
     int minAgora = _horaAtual.hour * 60 + _horaAtual.minute;
     Map<String, dynamic>? eventoAgora;
     Map<String, dynamic>? eventoProximo;
-
     List<Map<String, dynamic>> eventosDoDia = _todosEventos.where((e) => e["dia"] == _diaAtual).toList();
 
     for (var e in eventosDoDia) {
       int inicio = _horaParaMin(e["horarioInicial"]);
       int fim = _horaParaMin(e["horarioFinal"]);
-
-      if (minAgora >= inicio && minAgora < fim) {
-        eventoAgora = e;
-      } else if (minAgora < inicio && eventoProximo == null) {
-        eventoProximo = e;
-      }
+      if (minAgora >= inicio && minAgora < fim) eventoAgora = e;
+      else if (minAgora < inicio && eventoProximo == null) eventoProximo = e;
     }
 
     return SingleChildScrollView(
@@ -263,120 +234,212 @@ class _AbaInicioState extends State<AbaInicio> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Agenda (Sincronizada: Dia $_diaAtual)", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text(
-                "${_horaAtual.hour.toString().padLeft(2, '0')}:${_horaAtual.minute.toString().padLeft(2, '0')}", 
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)
-              ),
+              Text("${_horaAtual.hour.toString().padLeft(2, '0')}:${_horaAtual.minute.toString().padLeft(2, '0')}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)),
             ],
           ),
           const SizedBox(height: 15),
 
           Row(
             children: [
-              Expanded(
-                child: eventoAgora != null 
-                  ? _construirBloco("EVENTO ATUAL", eventoAgora, Colors.orange, Colors.deepOrangeAccent, Icons.play_circle_fill)
-                  : _construirBlocoVazio("TEMPO LIVRE", "Nenhuma atividade a decorrer agora.", Colors.grey),
-              ),
+              Expanded(child: eventoAgora != null ? _construirBloco("EVENTO ATUAL", eventoAgora, Colors.orange, Colors.deepOrangeAccent, Icons.play_circle_fill) : _construirBlocoVazio("TEMPO LIVRE", "Nenhuma atividade a decorrer agora.", Colors.grey)),
               const SizedBox(width: 15), 
-              Expanded(
-                child: eventoProximo != null 
-                  ? _construirBloco("PRÓXIMO EVENTO", eventoProximo, Colors.lightBlue, Colors.blueAccent, Icons.update)
-                  : _construirBlocoVazio("DIA CONCLUÍDO", "Bom descanso para amanhã!", Colors.indigo),
-              ),
+              Expanded(child: eventoProximo != null ? _construirBloco("PRÓXIMO EVENTO", eventoProximo, Colors.lightBlue, Colors.blueAccent, Icons.update) : _construirBlocoVazio("DIA CONCLUÍDO", "Bom descanso para amanhã!", Colors.indigo)),
             ],
           ),
           const SizedBox(height: 35),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Anotações", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Icon(Icons.edit_note, color: corTextoSecundario),
-            ],
-          ),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Anotações", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), Icon(Icons.edit_note, color: corTextoSecundario)]),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(color: isEscuro ? const Color(0xFF2A2A2A) : const Color(0xFFFFF9C4), borderRadius: BorderRadius.circular(12), border: Border.all(color: isEscuro ? Colors.white12 : Colors.yellow.shade600, width: 1)),
             child: TextField(
-              controller: _notasController, maxLines: 4, onChanged: _salvarNotas, style: TextStyle(fontSize: 15, color: isEscuro ? Colors.white : Colors.black87),
-              decoration: InputDecoration(hintText: "Escreva aqui os avisos, impressões ou lembretes...", hintStyle: TextStyle(color: isEscuro ? Colors.white30 : Colors.black38), border: InputBorder.none, contentPadding: const EdgeInsets.all(15)),
+              controller: _notasController, maxLines: 3, onChanged: _salvarNotas, style: TextStyle(fontSize: 15, color: isEscuro ? Colors.white : Colors.black87),
+              decoration: InputDecoration(hintText: "Escreva aqui os avisos ou lembretes...", hintStyle: TextStyle(color: isEscuro ? Colors.white30 : Colors.black38), border: InputBorder.none, contentPadding: const EdgeInsets.all(15)),
             ),
           ),
           const SizedBox(height: 30),
 
           // ==========================================
-          // A NOVA LISTA DINÂMICA (LÊ DIRETAMENTE DO FIRESTORE)
+          // MAGIA ACONTECE AQUI: CHAMA O PAINEL DE ACORDO COM A FUNÇÃO
           // ==========================================
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(iconeJovens, color: corIconeJovens, size: 22),
-                  const SizedBox(width: 8),
-                  Text(tituloJovens, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          
-          if (_funcaoLogada == 'Administrador')
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Text("Como Administrador, você não possui jovens diretos. Utilize a aba Liderança para gerenciar todos.", style: TextStyle(fontStyle: FontStyle.italic)),
-            )
-          else
-            StreamBuilder<QuerySnapshot>(
-              // LÊ APENAS OS JOVENS CUJO NOME DO CONSULTOR É IGUAL AO QUE FEZ LOGIN
-              stream: FirebaseFirestore.instance
-                  .collection('jovens')
-                  .where('consultor', isEqualTo: _nomeConsultorLogado)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Text("Nenhum jovem associado a você ainda. A liderança fará a alocação em breve."),
-                  );
-                }
-
-                // Cria a lista de Cards com os dados que vieram do banco
-                final jovens = snapshot.data!.docs;
-
-                return ListView.builder(
-                  shrinkWrap: true, // Importante para não dar erro dentro do SingleChildScrollView
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: jovens.length,
-                  itemBuilder: (context, index) {
-                    final jovem = jovens[index].data() as Map<String, dynamic>;
-                    
-                    return Card(
-                      elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)), color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: corIconeJovens.withValues(alpha: 0.15),
-                          child: Text(jovem["nome"][0].toUpperCase(), style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold))
-                        ),
-                        title: Text(jovem["nome"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(jovem["quarto"].toString().isNotEmpty ? "Quarto: ${jovem['quarto']}" : "Quarto: A Definir", style: TextStyle(color: corTextoSecundario, fontSize: 12)),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                        
-                        onTap: () => _abrirFichaDoJovem(jovem, isEscuro, corIconeJovens),
-                      ),
-                    );
-                  },
-                );
-              }
-            ),
+          _construirPainelDinamicoPorFuncao(isEscuro, corTextoSecundario),
           
           const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  // --- O CÉREBRO DA ESTRUTURA ---
+  Widget _construirPainelDinamicoPorFuncao(bool isEscuro, Color corTextoSecundario) {
+    if (_funcaoLogada == 'Consultor') {
+      return _painelConsultor(isEscuro, corTextoSecundario);
+    } else if (_funcaoLogada == 'Coordenador Assistente') {
+      return _painelCoordenadorAssistente(isEscuro);
+    } else if (_funcaoLogada == 'Coordenador' || _funcaoLogada == 'Diretor') {
+      return _painelDiretoria(isEscuro);
+    } else if (_funcaoLogada == 'Logística') {
+      return _painelLogistica(isEscuro);
+    } else {
+      return _painelAdmin();
+    }
+  }
+
+  // ==========================================
+  // OS 5 PAINÉIS DIFERENTES (UM PARA CADA CARGO)
+  // ==========================================
+
+  Widget _painelConsultor(bool isEscuro, Color corTextoSecundario) {
+    String tituloJovens = (_generoConsultor.toLowerCase().contains("fem") || _generoConsultor.toLowerCase().contains("mulher")) ? "Minhas Moças" : "Meus Rapazes";
+    Color corIconeJovens = (_generoConsultor.toLowerCase().contains("fem") || _generoConsultor.toLowerCase().contains("mulher")) ? Colors.pinkAccent : Colors.blue;
+    IconData iconeJovens = (_generoConsultor.toLowerCase().contains("fem") || _generoConsultor.toLowerCase().contains("mulher")) ? Icons.face_3 : Icons.face;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [Icon(iconeJovens, color: corIconeJovens, size: 22), const SizedBox(width: 8), Text(tituloJovens, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]),
+        const SizedBox(height: 10),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('jovens').where('consultor', isEqualTo: _nomeConsultorLogado).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text("Nenhum jovem associado a você ainda.");
+            final jovens = snapshot.data!.docs;
+            return ListView.builder(
+              shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: jovens.length,
+              itemBuilder: (context, index) {
+                final jovem = jovens[index].data() as Map<String, dynamic>;
+                return Card(
+                  elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)), color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                  child: ListTile(
+                    leading: CircleAvatar(backgroundColor: corIconeJovens.withValues(alpha: 0.15), child: Text(jovem["nome"][0].toUpperCase(), style: TextStyle(color: corIconeJovens, fontWeight: FontWeight.bold))),
+                    title: Text(jovem["nome"], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(jovem["quarto"].toString().isNotEmpty ? "Quarto: ${jovem['quarto']}" : "Quarto: A Definir", style: TextStyle(color: corTextoSecundario, fontSize: 12)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                    onTap: () => _abrirFichaDoJovem(jovem, isEscuro, corIconeJovens),
+                  ),
+                );
+              },
+            );
+          }
+        )
+      ],
+    );
+  }
+
+  Widget _painelCoordenadorAssistente(bool isEscuro) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(children: [Icon(Icons.flag, color: Colors.green, size: 22), SizedBox(width: 8), Text("Minhas Companhias", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]),
+        const SizedBox(height: 10),
+        const Text("Como Coordenador Assistente, você acompanha de perto as suas Companhias designadas e o progresso das Atividades.", style: TextStyle(color: Colors.grey)),
+        const SizedBox(height: 15),
+        _botaoAtalho("Visão de Companhias", "Ver atividades e Consultores responsáveis", Icons.groups, Colors.green, isEscuro, () {
+           Navigator.push(context, MaterialPageRoute(builder: (context) => const GerenciarCompanhias()));
+        }),
+      ],
+    );
+  }
+
+  Widget _painelDiretoria(bool isEscuro) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(children: [Icon(Icons.star, color: Colors.amber, size: 22), SizedBox(width: 8), Text("Painel da Diretoria", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]),
+        const SizedBox(height: 10),
+        const Text("Bem-vindo à supervisão do FSY. Acompanhe o desenvolvimento de todos.", style: TextStyle(color: Colors.grey)),
+        const SizedBox(height: 15),
+        _botaoAtalho("Treinamentos da Liderança", "Agendas exclusivas", Icons.school, Colors.amber, isEscuro, () {}),
+        _botaoAtalho("Visão Geral das Companhias", "Acompanhar todas as Cias", Icons.public, Colors.deepPurple, isEscuro, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const GerenciarCompanhias()));
+        }),
+      ],
+    );
+  }
+
+  Widget _painelLogistica(bool isEscuro) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(children: [Icon(Icons.inventory, color: Colors.brown, size: 22), SizedBox(width: 8), Text("Painel de Logística", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]),
+        const SizedBox(height: 10),
+        const Text("Visão geral do evento em Tempo Real", style: TextStyle(color: Colors.grey)),
+        const SizedBox(height: 15),
+        
+        // ==========================================
+        // OS CARDS EM TEMPO REAL PARA A LOGÍSTICA!
+        // ==========================================
+        Row(
+          children: [
+            _construirCardRealTime("Jovens", Icons.face, Colors.blue, 'jovens', isEscuro),
+            const SizedBox(width: 10),
+            _construirCardRealTime("Equipe", Icons.badge, Colors.teal, 'usuarios', isEscuro),
+            const SizedBox(width: 10),
+            _construirCardRealTime("Companhias", Icons.flag, Colors.orange, 'companhias', isEscuro),
+          ],
+        ),
+        const SizedBox(height: 25),
+
+        _botaoAtalho("Lista Geral de Jovens", "Filtrar por nome, idade ou alergias", Icons.format_list_bulleted, Colors.green, isEscuro, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ListaJovensTela()));
+        }),
+        _botaoAtalho("Mapa de Alojamentos", "Distribuição de quartos", Icons.hotel, Colors.indigo, isEscuro, () {}),
+      ],
+    );
+  }
+
+  Widget _painelAdmin() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 10),
+      child: Text("Como Administrador de Sistemas, utilize a 'Aba Liderança' no menu inferior para ter acesso irrestrito aos controles.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+    );
+  }
+
+  // WIDGET AUXILIAR PARA CRIAR OS BOTÕES BONITOS
+  Widget _botaoAtalho(String titulo, String subtitulo, IconData icone, Color cor, bool isEscuro, VoidCallback acao) {
+    return Card(
+      elevation: 0, color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white, margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: cor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)), child: Icon(icone, color: cor)),
+        title: Text(titulo, style: TextStyle(fontWeight: FontWeight.bold, color: isEscuro ? Colors.white : Colors.black87)),
+        subtitle: Text(subtitulo, style: TextStyle(fontSize: 12, color: isEscuro ? Colors.white54 : Colors.black54)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+        onTap: acao,
+      ),
+    );
+  }
+
+  // WIDGET AUXILIAR PARA CRIAR OS CARDS EM TEMPO REAL DA LOGÍSTICA
+  Widget _construirCardRealTime(String titulo, IconData icone, Color cor, String colecao, bool isEscuro) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+          color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: isEscuro ? Colors.white12 : Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+        ),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection(colecao).snapshots(),
+          builder: (context, snapshot) {
+            String valor = "..."; 
+            if (snapshot.hasData) {
+              valor = snapshot.data!.docs.length.toString();
+            }
+            return Column(
+              children: [
+                Icon(icone, color: cor, size: 28),
+                const SizedBox(height: 8),
+                Text(valor, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(titulo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            );
+          }
+        ),
       ),
     );
   }

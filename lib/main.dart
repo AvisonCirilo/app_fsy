@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'telas/login_tela.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // NOVO: Importação da Autenticação
+
 import 'firebase_options.dart';
+import 'telas/login_tela.dart';
+import 'telas/home_tela.dart'; // NOVO: Importamos a tela inicial para o atalho
 
 // ==========================================
 // 1. O MENSAGEIRO GLOBAL DO TEMA
@@ -10,28 +13,20 @@ import 'firebase_options.dart';
 final ValueNotifier<ThemeMode> temaGlobalNotifier = ValueNotifier(ThemeMode.light);
 
 void main() async {
-  // Garante que o Flutter está pronto para ler configurações nativas antes de arrancar
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 🔥 A IGNIÇÃO DO FIREBASE 🔥
-  // Inicia o motor do Firebase usando as chaves geradas pelo terminal
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  // Lê a memória para ver se o Jovem/Consultor deixou o Modo Escuro ligado da última vez
   final prefs = await SharedPreferences.getInstance();
   bool modoEscuroAtivo = prefs.getBool('config_modo_escuro') ?? false;
   
-  // Define a cor com que o aplicativo vai abrir
   temaGlobalNotifier.value = modoEscuroAtivo ? ThemeMode.dark : ThemeMode.light;
 
   runApp(const FsyApp());
 }
 
-// ==========================================
-// A SUA CLASSE FsyApp CONTINUA EXATAMENTE IGUAL DAQUI PARA BAIXO...
-// ==========================================
 class FsyApp extends StatelessWidget {
   const FsyApp({super.key});
 
@@ -65,8 +60,41 @@ class FsyApp extends StatelessWidget {
             ),
           ),
           
-          home: const TelaLogin(), 
+          // A MÁGICA ACONTECE AQUI: Em vez de apontar para a TelaLogin, aponta para o Guarda!
+          home: const ChecadorDeSessao(), 
         );
+      },
+    );
+  }
+}
+
+// ==========================================
+// 2. O GUARDA DA PORTA (VERIFICA A SESSÃO SALVA)
+// ==========================================
+class ChecadorDeSessao extends StatelessWidget {
+  const ChecadorDeSessao({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // O StreamBuilder fica a "escutar" o Firebase para saber se a pessoa já tem a chave de acesso
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        
+        // Enquanto o Firebase procura a chave na memória do telemóvel, mostra a bolinha a girar
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator(color: Colors.blue)),
+          );
+        }
+        
+        // Se encontrou uma chave válida (alguém fez login antes e não clicou em "Sair")
+        if (snapshot.hasData) {
+          return const TelaInicial(); // Vai direto para dentro do App!
+        }
+        
+        // Se não encontrou chave nenhuma, aí sim obriga a fazer Login
+        return const TelaLogin();
       },
     );
   }

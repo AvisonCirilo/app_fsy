@@ -7,6 +7,9 @@ import 'abas/aba_companhia.dart';
 import './abas/aba_perfil.dart';
 import './abas/aba_admin.dart';
 
+// NOVO: Importamos a tela de Lista de Jovens para poder colocá-la na barra debaixo!
+import './abas/admin/lista_jovens.dart'; 
+
 class TelaInicial extends StatefulWidget {
   const TelaInicial({super.key});
 
@@ -18,7 +21,6 @@ class _TelaInicialState extends State<TelaInicial> {
   int _indiceAtual = 0;
   bool _carregando = true;
 
-  // Em vez de serem listas fixas (const/final), agora são variáveis dinâmicas!
   List<Widget> _secoes = [];
   List<BottomNavigationBarItem> _itensBarra = [];
 
@@ -32,35 +34,55 @@ class _TelaInicialState extends State<TelaInicial> {
   Future<void> _construirAbasPorPermissao() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // O App vai ler secretamente o que está escrito no campo "Função" do seu Perfil
+    // O App lê secretamente o que está escrito no campo "Função" do Perfil
     String funcaoSalva = prefs.getString('perfil_funcao') ?? "";
     
-    // Verifica se a palavra "admin" ou "administrador" está lá dentro (ignorando maiúsculas)
     bool isAdmin = funcaoSalva.toLowerCase().contains('admin');
+    bool isLogistica = funcaoSalva == 'Logística'; // Verifica se o perfil é o da Logística
 
-    // 1. Constrói as 4 abas normais para todos
+    // 1. As abas que todos têm em comum (Início e Agenda)
     List<Widget> telasTemp = [
-      // === AQUI ESTÁ A MÁGICA DO CLIQUE ===
       AbaInicio(
         irParaAgenda: () {
-          _aoTocarNaAba(1); // O índice 1 representa a segunda aba (Agenda)
+          _aoTocarNaAba(1); 
         },
       ),
       const AbaAgenda(),
-      const AbaCompanhia(),
-      const AbaPerfil(),
     ];
 
     List<BottomNavigationBarItem> botoesTemp = [
       const BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Início'),
       const BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), activeIcon: Icon(Icons.calendar_month), label: 'Agenda'),
-      const BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), activeIcon: Icon(Icons.groups), label: 'Companhia'),
-      const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
     ];
 
-    // 2. SE FOR ADMINISTRADOR, ELE INJETA O MODO DEUS NAS LISTAS!
+    // ==========================================
+    // 2. A ABA DO MEIO (Muda consoante o cargo!)
+    // ==========================================
+    if (isLogistica) {
+      // Se for Logística, ele substitui a Companhia pela Lista de Jovens!
+      telasTemp.add(const ListaJovensTela());
+      botoesTemp.add(const BottomNavigationBarItem(
+        icon: Icon(Icons.format_list_bulleted), 
+        activeIcon: Icon(Icons.list), 
+        label: 'Jovens'
+      ));
+    } else {
+      // Para os outros líderes, continua a ser a Aba de Companhia
+      telasTemp.add(const AbaCompanhia());
+      botoesTemp.add(const BottomNavigationBarItem(
+        icon: Icon(Icons.groups_outlined), 
+        activeIcon: Icon(Icons.groups), 
+        label: 'Companhia'
+      ));
+    }
+
+    // 3. A aba Perfil vai logo a seguir
+    telasTemp.add(const AbaPerfil());
+    botoesTemp.add(const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'));
+
+    // 4. SE FOR ADMINISTRADOR, ELE INJETA A 5ª ABA "MODO DEUS"
     if (isAdmin) {
-      telasTemp.add(const AbaAdmin()); // 5ª Aba
+      telasTemp.add(const AbaAdmin());
       botoesTemp.add(const BottomNavigationBarItem(
         icon: Icon(Icons.admin_panel_settings_outlined), 
         activeIcon: Icon(Icons.admin_panel_settings), 
@@ -84,7 +106,6 @@ class _TelaInicialState extends State<TelaInicial> {
 
   @override
   Widget build(BuildContext context) {
-    // Se ainda estiver lendo a memória, mostra bolinha de carregamento
     if (_carregando) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -110,11 +131,7 @@ class _TelaInicialState extends State<TelaInicial> {
           ),
         ],
       ),
-
-      // Chama as secções que foram construídas magicamente
       body: _secoes[_indiceAtual],
-
-      // Chama os botões que foram construídos magicamente
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
@@ -123,7 +140,7 @@ class _TelaInicialState extends State<TelaInicial> {
         
         currentIndex: _indiceAtual,
         onTap: _aoTocarNaAba,
-        items: _itensBarra, // <-- Agora puxa a lista dinâmica!
+        items: _itensBarra, 
       ),
     );
   }
