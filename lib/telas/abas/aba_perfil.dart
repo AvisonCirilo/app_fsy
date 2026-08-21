@@ -175,7 +175,9 @@ class _AbaPerfilState extends State<AbaPerfil> {
                         await user.updatePassword(novaSenhaCtrl.text);
                         
                         if (mounted) {
+                          // ignore: use_build_context_synchronously
                           Navigator.pop(context);
+                          // ignore: use_build_context_synchronously
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Senha alterada com sucesso!"), backgroundColor: Colors.green));
                         }
                       }
@@ -185,6 +187,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
                         erro = "A senha atual está incorreta.";
                       }
                       if (mounted) {
+                        // ignore: use_build_context_synchronously
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro), backgroundColor: Colors.redAccent));
                       }
                     } finally {

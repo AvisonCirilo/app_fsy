@@ -86,7 +86,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                   
                   SwitchListTile(
                     title: const Text("Ordem Crescente (A-Z / Menor p/ Maior)", style: TextStyle(fontWeight: FontWeight.bold)),
-                    activeColor: Colors.grey.shade700,
+                    activeThumbColor: Colors.grey.shade700,
                     value: _ordemCrescente,
                     onChanged: (valor) => setStateSheet(() => _ordemCrescente = valor),
                   ),
@@ -173,7 +173,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                         Expanded(
                           flex: 3,
                           child: DropdownButtonFormField<String>(
-                            value: generoSelecionado,
+                            initialValue: generoSelecionado,
                             dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
                             style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
                             decoration: InputDecoration(
@@ -212,7 +212,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                     const SizedBox(height: 15),
                     
                     DropdownButtonFormField<String>(
-                      value: consultorSelecionado,
+                      initialValue: consultorSelecionado,
                       dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
                       style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
                       icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade700),
@@ -234,7 +234,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                       child: SwitchListTile(
                         title: const Text("Membro da Igreja?", style: TextStyle(fontWeight: FontWeight.w500)),
                         subtitle: Text(membroIgreja ? "Sim" : "Não", style: TextStyle(color: membroIgreja ? Colors.green : Colors.grey)),
-                        activeColor: Colors.grey.shade700,
+                        activeThumbColor: Colors.grey.shade700,
                         secondary: Icon(Icons.church, color: membroIgreja ? Colors.grey.shade700 : Colors.grey),
                         value: membroIgreja,
                         onChanged: (valor) => setStateSheet(() => membroIgreja = valor),
@@ -276,9 +276,11 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                               await FirebaseFirestore.instance.collection('jovens').add(dadosJovem);
                             }
                             if (mounted) {
+                              // ignore: use_build_context_synchronously
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Jovem ${isEdicao ? 'atualizado' : 'cadastrado'}!"), backgroundColor: Colors.green));
                             }
                           } catch (e) {
+                            // ignore: use_build_context_synchronously
                             if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao salvar: $e"), backgroundColor: Colors.redAccent));
                           }
                         },
@@ -561,6 +563,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                           if (confirmar) {
                             // APAGA NO BANCO DE DADOS
                             await FirebaseFirestore.instance.collection('jovens').doc(jovem['id']).delete();
+                            // ignore: use_build_context_synchronously
                             if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${jovem['nome']} foi removido."), backgroundColor: Colors.redAccent));
                             return true; // Deixa o Dismissible terminar a animação
                           }
@@ -574,7 +577,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: jovem['genero'] == 'Masculino' ? Colors.blue.withOpacity(0.2) : Colors.pink.withOpacity(0.2),
+                            backgroundColor: jovem['genero'] == 'Masculino' ? Colors.blue.withValues(alpha: 0.2) : Colors.pink.withValues(alpha: 0.2),
                             child: Text(
                               jovem['nome'][0].toUpperCase(),
                               style: TextStyle(color: jovem['genero'] == 'Masculino' ? Colors.blue : Colors.pink, fontWeight: FontWeight.bold),
