@@ -18,6 +18,7 @@ class AbaPerfil extends StatefulWidget {
 class _AbaPerfilState extends State<AbaPerfil> {
   bool _editando = false;
   bool _modoEscuro = false;
+  bool _seguirTemaSistema = true;
   String? _caminhoFotoPerfil;
   String _funcaoLogada = ""; 
 
@@ -55,6 +56,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
       _restricoesController.text = prefs.getString('perfil_restricoes') ?? "Nenhuma";
       
       _modoEscuro = prefs.getBool('config_modo_escuro') ?? false;
+      _seguirTemaSistema = prefs.getBool('config_seguir_tema_sistema') ?? true;
       
       _caminhoFotoPerfil = prefs.getString('perfil_foto');
     });
@@ -63,6 +65,34 @@ class _AbaPerfilState extends State<AbaPerfil> {
   // ==========================================
   // SALVAR PERFIL (AGORA SINCRONIZA COM O FIRESTORE)
   // ==========================================
+  // Controles de aparência: não alteram o perfil nem os dados no Firebase.
+  Future<void> _alterarSeguirTemaSistema(bool seguirSistema) async {
+    final escuroAtual = Theme.of(context).brightness == Brightness.dark;
+
+    setState(() {
+      _seguirTemaSistema = seguirSistema;
+      if (!seguirSistema) _modoEscuro = escuroAtual;
+    });
+
+    temaGlobalNotifier.value = seguirSistema
+        ? ThemeMode.system
+        : (escuroAtual ? ThemeMode.dark : ThemeMode.light);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('config_seguir_tema_sistema', seguirSistema);
+    if (!seguirSistema) {
+      await prefs.setBool('config_modo_escuro', escuroAtual);
+    }
+  }
+
+  Future<void> _alterarModoEscuro(bool ativo) async {
+    setState(() => _modoEscuro = ativo);
+    temaGlobalNotifier.value = ativo ? ThemeMode.dark : ThemeMode.light;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('config_modo_escuro', ativo);
+  }
+
   Future<void> _salvarPerfil() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('perfil_nome', _nomeController.text);
@@ -427,15 +457,22 @@ class _AbaPerfilState extends State<AbaPerfil> {
             child: Column(
               children: [
                 SwitchListTile(
+                  secondary: const Icon(Icons.brightness_auto, color: Colors.grey),
+                  title: const Text("Seguir tema do sistema"),
+                  subtitle: const Text("Usar a aparência do dispositivo"),
+                  value: _seguirTemaSistema,
+                  onChanged: _alterarSeguirTemaSistema,
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
                   secondary: const Icon(Icons.dark_mode, color: Colors.grey),
                   title: const Text("Modo Escuro"),
-                  value: _modoEscuro,
+                  subtitle: _seguirTemaSistema
+                      ? const Text("Controlado automaticamente pelo sistema")
+                      : null,
+                  value: _seguirTemaSistema ? isEscuro : _modoEscuro,
                   activeThumbColor: Colors.grey,
-                  onChanged: (bool valor) {
-                    setState(() => _modoEscuro = valor);
-                    _salvarPerfil(); 
-                    temaGlobalNotifier.value = valor ? ThemeMode.dark : ThemeMode.light;
-                  },
+                  onChanged: _seguirTemaSistema ? null : _alterarModoEscuro,
                 ),
                 const Divider(height: 1),
                 // O NOVO BOTÃO DE ALTERAR SENHA AQUI!
