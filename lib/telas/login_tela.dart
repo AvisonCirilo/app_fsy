@@ -87,7 +87,9 @@ class _TelaLoginState extends State<TelaLogin> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 242, 245, 207),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF121212)
+          : const Color.fromARGB(255, 242, 245, 207),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -122,7 +124,15 @@ class _TelaLoginState extends State<TelaLogin> {
                       children: [
                         GestureDetector(
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TelaRecuperarSenha())),
-                          child: Text('Forget Password', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.bold)),
+                          child: Text(
+                            'Forget Password',
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white70
+                                  : Colors.grey[700],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),

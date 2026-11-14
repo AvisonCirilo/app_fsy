@@ -10,7 +10,7 @@ import 'telas/home_tela.dart'; // NOVO: Importamos a tela inicial para o atalho
 // ==========================================
 // 1. O MENSAGEIRO GLOBAL DO TEMA
 // ==========================================
-final ValueNotifier<ThemeMode> temaGlobalNotifier = ValueNotifier(ThemeMode.light);
+final ValueNotifier<ThemeMode> temaGlobalNotifier = ValueNotifier(ThemeMode.system);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,9 +20,13 @@ void main() async {
   );
   
   final prefs = await SharedPreferences.getInstance();
-  bool modoEscuroAtivo = prefs.getBool('config_modo_escuro') ?? false;
-  
-  temaGlobalNotifier.value = modoEscuroAtivo ? ThemeMode.dark : ThemeMode.light;
+  final seguirTemaSistema = prefs.getBool('config_seguir_tema_sistema') ?? true;
+  final modoEscuroAtivo = prefs.getBool('config_modo_escuro') ?? false;
+
+  // Padrão: acompanhar a aparência do sistema, inclusive no navegador.
+  temaGlobalNotifier.value = seguirTemaSistema
+      ? ThemeMode.system
+      : (modoEscuroAtivo ? ThemeMode.dark : ThemeMode.light);
 
   runApp(const FsyApp());
 }
