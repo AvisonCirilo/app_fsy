@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'admin/mapa_alojamentos.dart';
 
 // Importa as telas administrativas para criar atalhos para os líderes
 import 'admin/lista_jovens.dart';
@@ -384,7 +385,10 @@ class _AbaInicioState extends State<AbaInicio> {
         _botaoAtalho("Lista Geral de Jovens", "Filtrar por nome, idade ou alergias", Icons.format_list_bulleted, Colors.green, isEscuro, () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const ListaJovensTela()));
         }),
-        _botaoAtalho("Mapa de Alojamentos", "Distribuição de quartos", Icons.hotel, Colors.indigo, isEscuro, () {}),
+        _botaoAtalho("Mapa de Alojamentos", "Distribuição de quartos", Icons.hotel, Colors.indigo, isEscuro, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const MapaAlojamentos()));
+          }
+        ),
       ],
     );
   }

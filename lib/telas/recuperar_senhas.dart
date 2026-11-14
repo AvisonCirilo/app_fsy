@@ -57,7 +57,7 @@ class TelaRecuperarSenha extends StatelessWidget {
                   const Icon(
                     Icons.support_agent, // Mudei para um ícone de suporte
                     size: 80,
-                    color: Color.fromARGB(255, 160, 240, 108), //Green
+                    color: Color.fromARGB(255, 251, 253, 133), //Green
                   ),
                   const SizedBox(height: 30),
                   
