@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/app_permissions.dart';
 import '../../../data/local_auth_service.dart';
 import '../../../data/local_database.dart';
@@ -146,6 +147,13 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
                                       .toList(),
                               });
                             }
+                          }
+
+                          final perfilAtual =
+                              LocalAuthService.instance.currentUser?.profile;
+                          if (perfilAtual?['companhia'] == nomeAntigo) {
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setString('perfil_companhia', novoNome);
                           }
                         }
                       } else {
