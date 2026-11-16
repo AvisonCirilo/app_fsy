@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 import '../../data/app_permissions.dart';
 import '../../data/local_auth_service.dart';
 import '../../data/local_database.dart';
+import '../../data/lodging_structure.dart';
 import 'admin/mapa_alojamentos.dart';
 
 class AbaLogistica extends StatelessWidget {
   const AbaLogistica({super.key});
 
-  void _abrirMapa(BuildContext context) {
+  void _abrirDetalhes(BuildContext context, int abaInicial) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const MapaAlojamentos()),
+      MaterialPageRoute(
+        builder: (_) => MapaAlojamentos(initialTabIndex: abaInicial),
+      ),
     );
   }
 
@@ -21,37 +24,61 @@ class AbaLogistica extends StatelessWidget {
     required String valor,
     required IconData icone,
     required Color cor,
+    required VoidCallback onTap,
   }) {
     final isEscuro = Theme.of(context).brightness == Brightness.dark;
+    final radius = BorderRadius.circular(16);
 
-    return Container(
+    return SizedBox(
       width: 155,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      child: Material(
         color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isEscuro ? Colors.white12 : Colors.grey.shade200,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icone, color: cor, size: 25),
-          const SizedBox(height: 12),
-          Text(
-            valor,
-            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            titulo,
-            style: TextStyle(
-              color: isEscuro ? Colors.white60 : Colors.black54,
-              fontSize: 12,
+        borderRadius: radius,
+        child: InkWell(
+          borderRadius: radius,
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(
+                color: isEscuro ? Colors.white12 : Colors.grey.shade200,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icone, color: cor, size: 25),
+                    const Spacer(),
+                    Icon(
+                      Icons.open_in_new,
+                      size: 15,
+                      color: isEscuro ? Colors.white38 : Colors.black38,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  valor,
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    color: isEscuro ? Colors.white60 : Colors.black54,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -74,19 +101,16 @@ class AbaLogistica extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final jovens = snapshot.data?.docs ?? [];
-        final quartos = <String>{};
-        var alojados = 0;
-
-        for (final jovem in jovens) {
-          final quarto = (jovem['quarto'] ?? '').toString().trim();
-          if (quarto.isNotEmpty && quarto.toLowerCase() != 'a definir') {
-            alojados++;
-            quartos.add(quarto);
-          }
+        if (snapshot.hasError) {
+          return const Center(
+            child: Text('Não foi possível carregar os dados de alojamento.'),
+          );
         }
 
+        final jovens = snapshot.data?.docs ?? [];
+        final alojados = jovens.where(LodgingStructure.isAssigned).length;
         final pendentes = jovens.length - alojados;
+        final quartosEmUso = LodgingStructure.countRooms(jovens);
         final isEscuro = Theme.of(context).brightness == Brightness.dark;
 
         return SingleChildScrollView(
@@ -105,7 +129,15 @@ class AbaLogistica extends StatelessWidget {
                   color: isEscuro ? Colors.white70 : Colors.black54,
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 8),
+              Text(
+                'Toque em um indicador para consultar os detalhes.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isEscuro ? Colors.white54 : Colors.black45,
+                ),
+              ),
+              const SizedBox(height: 20),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -116,6 +148,7 @@ class AbaLogistica extends StatelessWidget {
                     valor: jovens.length.toString(),
                     icone: Icons.groups,
                     cor: Colors.blue,
+                    onTap: () => _abrirDetalhes(context, 0),
                   ),
                   _indicador(
                     context,
@@ -123,6 +156,7 @@ class AbaLogistica extends StatelessWidget {
                     valor: alojados.toString(),
                     icone: Icons.bed,
                     cor: Colors.green,
+                    onTap: () => _abrirDetalhes(context, 1),
                   ),
                   _indicador(
                     context,
@@ -130,13 +164,15 @@ class AbaLogistica extends StatelessWidget {
                     valor: pendentes.toString(),
                     icone: Icons.person_search,
                     cor: Colors.orange,
+                    onTap: () => _abrirDetalhes(context, 2),
                   ),
                   _indicador(
                     context,
                     titulo: 'Quartos em uso',
-                    valor: quartos.length.toString(),
+                    valor: quartosEmUso.toString(),
                     icone: Icons.meeting_room,
                     cor: Colors.indigo,
+                    onTap: () => _abrirDetalhes(context, 1),
                   ),
                 ],
               ),
@@ -161,10 +197,10 @@ class AbaLogistica extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: const Text(
-                    'Distribua os jovens, consulte os quartos e identifique pendências.',
+                    'Visualize os andares, consulte os quartos e faça alocações.',
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _abrirMapa(context),
+                  onTap: () => _abrirDetalhes(context, 1),
                 ),
               ),
               const SizedBox(height: 14),
