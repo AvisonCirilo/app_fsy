@@ -169,6 +169,15 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                                 'adjunta': adjuntaCtrl.text,
                                 'qtdJovens': qtdJovensCtrl.text,
                                 'quarto': quartoCtrl.text,
+                                'companhiasResponsaveis':
+                                    funcaoSelecionada ==
+                                                AppPermissions.assistantCoordinator &&
+                                            usuarioAtual.data()['companhiasResponsaveis']
+                                                is List
+                                        ? List<String>.from(
+                                            usuarioAtual.data()['companhiasResponsaveis'],
+                                          )
+                                        : <String>[],
                               });
                             } else {
                               if (senhaCtrl.text.length < 6) {
