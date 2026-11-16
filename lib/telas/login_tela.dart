@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../data/local_auth_service.dart';
 
 import '../components/meu_campo_texto.dart';
 import '../components/meu_botao.dart';
@@ -20,9 +19,9 @@ class _TelaLoginState extends State<TelaLogin> {
   final TextEditingController _senhaController = TextEditingController();
   bool _carregando = false;
 
-  Future<void> _fazerLoginFirebase() async {
-    String user = _userController.text.trim().toLowerCase();
-    String senha = _senhaController.text.trim();
+  Future<void> _fazerLoginLocal() async {
+    final user = _userController.text.trim().toLowerCase();
+    final senha = _senhaController.text;
 
     if (user.isEmpty || senha.isEmpty) {
       _mostrarAviso("Por favor, preencha o utilizador e a senha.");
@@ -30,53 +29,17 @@ class _TelaLoginState extends State<TelaLogin> {
     }
 
     setState(() => _carregando = true);
-    String emailFormatado = "$user@fsy.com"; // Truque para o Firebase aceitar o login curto
 
     try {
-      // 1. Valida a senha no Firebase Auth
-      UserCredential credencial = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailFormatado, password: senha,
-      );
-
-      // 2. Puxa a "Ficha" da pessoa no Banco de Dados Firestore
-      DocumentSnapshot docUsuario = await FirebaseFirestore.instance.collection('usuarios').doc(credencial.user!.uid).get();
-
-      if (docUsuario.exists) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('perfil_funcao', docUsuario['funcao'] ?? 'Consultor');
-        await prefs.setString('perfil_nome', docUsuario['nome'] ?? 'Usuário');
-        await prefs.setString('perfil_usuario', user);
-        await prefs.setString('perfil_companhia', docUsuario['companhia'] ?? 'A Definir');
-
-        if (!mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TelaInicial()));
-      } else {
-        _mostrarAviso("Ficha do usuário não encontrada no banco.");
-        await FirebaseAuth.instance.signOut();
-      }
-    } on FirebaseAuthException {
-      // PORTA SECRETA: Se o banco estiver vazio, cria o 1º Admin
-      if (user == 'admin' && senha == 'fsy2026') {
-         await _criarPrimeiroAdmin(emailFormatado, senha);
-      } else {
-        _mostrarAviso("Usuário ou senha incorretos.");
-      }
+      // O serviço local valida a credencial e restaura o perfil salvo.
+      await LocalAuthService.instance.signIn(user, senha);
+      // O ChecadorDeSessao observa a sessão e abre a área do aplicativo.
+    } on LocalAuthException catch (e) {
+      _mostrarAviso(e.message);
     } catch (e) {
-      _mostrarAviso("Erro de conexão: $e");
+      _mostrarAviso("Não foi possível entrar: $e");
     } finally {
       if (mounted) setState(() => _carregando = false);
-    }
-  }
-
-  Future<void> _criarPrimeiroAdmin(String email, String senha) async {
-    try {
-      UserCredential credencial = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: senha);
-      await FirebaseFirestore.instance.collection('usuarios').doc(credencial.user!.uid).set({
-        'nome': 'Admin Principal', 'funcao': 'Administrador', 'usuario': 'admin', 'companhia': 'Geral', 'saude': 'Nenhuma', 'medicamento': '',
-      });
-      _mostrarAviso("Conta Mestre criada! Clique em LOGIN novamente.", cor: Colors.green);
-    } catch (e) {
-      _mostrarAviso("Erro ao criar Admin: $e");
     }
   }
 
@@ -138,9 +101,20 @@ class _TelaLoginState extends State<TelaLogin> {
                     ),
                     const SizedBox(height: 25),
                     
-                    _carregando 
-                      ? const CircularProgressIndicator(color: Colors.amber)
-                      : MeuBotao(texto: 'LOGIN', onTap: _fazerLoginFirebase),
+                    _carregando
+                        ? const CircularProgressIndicator(color: Colors.amber)
+                        : MeuBotao(texto: 'LOGIN', onTap: _fazerLoginLocal),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Ambiente de desenvolvimento • dados locais',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white54
+                            : Colors.black54,
+                      ),
+                    ),
                   ],
                 ),
               ),
