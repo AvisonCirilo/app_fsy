@@ -1,0 +1,57 @@
+name: Flutter Web Preview
+
+on:
+  push:
+    branches:
+      - feature/desenvolvimento-local-sem-firebase
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze Dart code
+        id: analyze
+        continue-on-error: true
+        run: flutter analyze
+
+      - name: Run tests
+        id: tests
+        continue-on-error: true
+        run: flutter test
+
+      - name: Build web app
+        run: flutter build web --release
+
+      - name: Upload web preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-fsy-web-preview
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Summarize validation
+        if: always()
+        run: |
+          echo "### App FSY - Flutter Web" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dart analyze: ${{ steps.analyze.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Flutter tests: ${{ steps.tests.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Web build: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
