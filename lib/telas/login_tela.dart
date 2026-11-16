@@ -19,7 +19,7 @@ class _TelaLoginState extends State<TelaLogin> {
 
   Future<void> _fazerLoginLocal() async {
     final user = _userController.text.trim().toLowerCase();
-    final senha = _senhaController.text;
+    final senha = _senhaController.text.trim();
 
     if (user.isEmpty || senha.isEmpty) {
       _mostrarAviso("Por favor, preencha o utilizador e a senha.");
