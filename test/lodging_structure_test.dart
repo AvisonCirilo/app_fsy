@@ -58,12 +58,14 @@ void main() {
 
       final floors = LodgingStructure.groupByFloor(people);
 
-      expect(floors, hasLength(2));
+      expect(floors, hasLength(3));
       expect(floors[0].number, 1);
       expect(floors[0].rooms, hasLength(1));
       expect(floors[0].rooms[0].youth, hasLength(2));
       expect(floors[0].rooms[0].youth.first['nome'], 'Lucas');
       expect(floors[1].number, 2);
+      expect(floors[2].number, 3);
+      expect(floors[2].rooms, isEmpty);
       expect(LodgingStructure.countRooms(people), 2);
     });
 
