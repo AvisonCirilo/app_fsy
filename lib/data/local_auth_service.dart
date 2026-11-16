@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_permissions.dart';
 import 'local_database.dart';
 
 /// Autenticação fictícia para desenvolvimento local.
@@ -134,6 +135,22 @@ class LocalAuthService {
   }) async {
     _ensureInitialized();
 
+    final actor = _currentUser;
+    if (actor == null) {
+      throw const LocalAuthException(
+        'Entre no aplicativo para gerenciar contas.',
+      );
+    }
+
+    final targetRole = (profile['funcao'] ?? '').toString();
+    final permissions = AppPermissions.fromProfile(actor.profile);
+    if (!permissions.canCreateOrManageUserRole(targetRole)) {
+      throw const LocalAuthException(
+        'Você não tem permissão para criar esse tipo de usuário.',
+      );
+    }
+    await _validarDuasCompanhiasSeAssistente(profile);
+
     final normalized = username.trim().toLowerCase();
     if (normalized.isEmpty) {
       throw const LocalAuthException('Informe um nome de usuário.');
@@ -174,6 +191,13 @@ class LocalAuthService {
   Future<void> deleteAccount(String uid) async {
     _ensureInitialized();
 
+    final actor = _currentUser;
+    if (actor == null) {
+      throw const LocalAuthException(
+        'Entre no aplicativo para gerenciar contas.',
+      );
+    }
+
     final document = await LocalDatabase.instance
         .collection('usuarios')
         .doc(uid)
@@ -181,7 +205,21 @@ class LocalAuthService {
 
     if (!document.exists) return;
 
-    final username = (document.data()['usuario'] ?? '').toString();
+    final targetProfile = document.data();
+    final targetRole = (targetProfile['funcao'] ?? '').toString();
+    final permissions = AppPermissions.fromProfile(actor.profile);
+    if (!permissions.canCreateOrManageUserRole(targetRole)) {
+      throw const LocalAuthException(
+        'Você não tem permissão para excluir esse usuário.',
+      );
+    }
+    if (uid == actor.uid) {
+      throw const LocalAuthException(
+        'Não é permitido excluir a própria conta por esta tela.',
+      );
+    }
+
+    final username = (targetProfile['usuario'] ?? '').toString();
     if (username.isNotEmpty) {
       _credentials.remove(username);
       await _saveCredentials();
@@ -194,6 +232,91 @@ class LocalAuthService {
 
     if (_currentUser?.uid == uid) {
       await signOut();
+    }
+  }
+
+  Future<void> updateAccountProfile({
+    required String uid,
+    required Map<String, dynamic> updates,
+  }) async {
+    _ensureInitialized();
+
+    final actor = _currentUser;
+    if (actor == null) {
+      throw const LocalAuthException(
+        'Entre no aplicativo para gerenciar contas.',
+      );
+    }
+
+    final reference = LocalDatabase.instance.collection('usuarios').doc(uid);
+    final document = await reference.get();
+    if (!document.exists) {
+      throw const LocalAuthException('Usuário não encontrado.');
+    }
+
+    final currentProfile = document.data();
+    final currentRole = (currentProfile['funcao'] ?? '').toString();
+    final newRole = (updates['funcao'] ?? currentRole).toString();
+    final permissions = AppPermissions.fromProfile(actor.profile);
+
+    if (!permissions.canCreateOrManageUserRole(currentRole) ||
+        !permissions.canCreateOrManageUserRole(newRole)) {
+      throw const LocalAuthException(
+        'Você não tem permissão para alterar esse usuário ou seu cargo.',
+      );
+    }
+
+    await _validarDuasCompanhiasSeAssistente({
+      ...currentProfile,
+      ...updates,
+      'funcao': newRole,
+    });
+
+    await reference.update(updates);
+
+    if (_currentUser?.uid == uid) {
+      final updatedProfile = {...currentProfile, ...updates};
+      _currentUser = LocalAuthUser(
+        uid: uid,
+        username: _currentUser!.username,
+        profile: updatedProfile,
+      );
+      await _saveProfileLocally(updatedProfile);
+      _authChanges.add(_currentUser);
+    }
+  }
+
+  Future<void> _validarDuasCompanhiasSeAssistente(
+    Map<String, dynamic> profile,
+  ) async {
+    if ((profile['funcao'] ?? '').toString() !=
+        AppPermissions.assistantCoordinator) {
+      return;
+    }
+
+    final raw = profile['companhiasResponsaveis'];
+    final companhias = raw is List
+        ? raw.map((value) => value.toString().trim()).toSet().toList()
+        : <String>[];
+
+    if (companhias.length != 2 || companhias.any((nome) => nome.isEmpty)) {
+      throw const LocalAuthException(
+        'O Coordenador Assistente precisa ter exatamente duas companhias atribuídas.',
+      );
+    }
+
+    final existentes = await LocalDatabase.instance
+        .collection('companhias')
+        .snapshots()
+        .first;
+    final nomesExistentes = existentes.docs
+        .map((doc) => (doc['nome'] ?? '').toString())
+        .toSet();
+
+    if (companhias.any((nome) => !nomesExistentes.contains(nome))) {
+      throw const LocalAuthException(
+        'Selecione duas companhias cadastradas no sistema.',
+      );
     }
   }
 
