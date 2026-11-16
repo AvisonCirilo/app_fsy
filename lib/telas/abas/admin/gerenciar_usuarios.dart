@@ -27,6 +27,11 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
   // PAINEL INTELIGENTE (CRIAR E EDITAR NO BANCO LOCAL)
   // ==========================================
   void _mostrarPainelUsuario({LocalDocumentSnapshot? usuarioAtual}) {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    final isAdmin = permissoes.canManageAllUsers;
+
     bool isEdicao = usuarioAtual != null; 
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     bool ocultarSenha = true; 
