@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../data/local_database.dart';
 
@@ -10,6 +12,7 @@ class ListaJovensTela extends StatefulWidget {
 
 class _ListaJovensTelaState extends State<ListaJovensTela> {
   final TextEditingController _pesquisaController = TextEditingController();
+  StreamSubscription<LocalQuerySnapshot>? _consultoresSubscription;
 
   // Lista de Consultores agora vem do banco local!
   List<String> _consultoresDisponiveis = ["A Definir"];
@@ -27,7 +30,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
   // LÊ OS UTILIZADORES DO BANCO PARA O MENU SUSPENSO
   // ==========================================
   void _carregarConsultoresDoBanco() {
-    LocalDatabase.instance.collection('usuarios').snapshots().listen((snapshot) {
+    _consultoresSubscription = LocalDatabase.instance.collection('usuarios').snapshots().listen((snapshot) {
       List<String> nomesLideranca = ["A Definir"];
       for (var doc in snapshot.docs) {
         if (doc.data().containsKey('nome')) {
@@ -40,6 +43,13 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
         });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _consultoresSubscription?.cancel();
+    _pesquisaController.dispose();
+    super.dispose();
   }
 
   void _abrirPainelFiltros() {
