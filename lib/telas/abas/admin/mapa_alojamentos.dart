@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../data/app_permissions.dart';
+import '../../../data/local_auth_service.dart';
 import '../../../data/local_database.dart';
 
 class MapaAlojamentos extends StatefulWidget {
@@ -79,6 +81,18 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
 
   @override
   Widget build(BuildContext context) {
+    final permissions = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (!permissions.canAccessLodging) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Mapa de Alojamentos")),
+        body: const Center(
+          child: Text('Apenas a Logística e o Administrador podem acessar os alojamentos.'),
+        ),
+      );
+    }
+
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
 
     return DefaultTabController(
@@ -149,18 +163,15 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
                             title: Text(nomeQuarto, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                             subtitle: Text("${jovensNoQuarto.length} ocupante(s)", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                             children: jovensNoQuarto.map((jovem) {
-                              bool temAlerta = jovem['saude'] != "Nenhuma" || jovem['medicamento'].toString().isNotEmpty;
-                              
                               return ListTile(
                                 leading: const Icon(Icons.person, color: Colors.grey),
                                 title: Text(jovem['nome'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                                 subtitle: Text("Cia: ${jovem['companhia']}", style: const TextStyle(fontSize: 12)),
-                                trailing: temAlerta 
-                                    ? Tooltip(message: "Alerta Médico", child: const Icon(Icons.health_and_safety, color: Colors.redAccent, size: 20))
-                                    : IconButton(
-                                        icon: const Icon(Icons.edit_location_alt, size: 20, color: Colors.grey),
-                                        onPressed: () => _alocarJovem(jovem.id, jovem['nome']),
-                                      ),
+                                trailing: IconButton(
+                                  tooltip: "Alterar quarto",
+                                  icon: const Icon(Icons.edit_location_alt, size: 20, color: Colors.grey),
+                                  onPressed: () => _alocarJovem(jovem.id, jovem['nome']),
+                                ),
                               );
                             }).toList(),
                           ),
