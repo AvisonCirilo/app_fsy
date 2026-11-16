@@ -57,7 +57,7 @@ class AppPermissions {
   bool canCreateOrManageUserRole(String targetRole) {
     if (isAdministrator) return true;
     return (isDirector || isCoordinator) &&
-        targetRole == assistantCoordinator;
+        (targetRole == assistantCoordinator || targetRole == consultant);
   }
 
   /// Logística cuida da hospedagem; o Administrador mantém acesso de supervisão.
