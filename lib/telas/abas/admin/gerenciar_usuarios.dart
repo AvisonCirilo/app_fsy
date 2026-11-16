@@ -25,7 +25,7 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
   // ==========================================
   // PAINEL INTELIGENTE (CRIAR E EDITAR NO BANCO LOCAL)
   // ==========================================
-  void _mostrarPainelUsuario({LocalLocalDocumentSnapshot? usuarioAtual}) {
+  void _mostrarPainelUsuario({LocalDocumentSnapshot? usuarioAtual}) {
     bool isEdicao = usuarioAtual != null; 
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     bool ocultarSenha = true; 
@@ -177,7 +177,6 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                                   'companhia': 'A Definir',
                                 },
                               );
-                              await appSecundario.delete(); 
                             }
                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Utilizador ${isEdicao ? 'atualizado' : 'criado'} com sucesso!"), backgroundColor: Colors.green));
                           } catch (e) {
