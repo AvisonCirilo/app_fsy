@@ -68,24 +68,112 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: () async {
-                    if (nomeCtrl.text.isEmpty) return;
-
-                    Navigator.pop(context);
+                    final novoNome = nomeCtrl.text.trim();
+                    if (novoNome.isEmpty) return;
 
                     try {
+                      final existentes = await LocalDatabase.instance
+                          .collection('companhias')
+                          .snapshots()
+                          .first;
+                      final nomeDuplicado = existentes.docs.any((doc) =>
+                          doc.id != ciaAtual?.id &&
+                          (doc['nome'] ?? '').toString().toLowerCase() ==
+                              novoNome.toLowerCase());
+
+                      if (nomeDuplicado) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Já existe uma companhia com esse nome.'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
+                      Navigator.pop(context);
+
                       if (isEdicao) {
-                        await LocalDatabase.instance.collection('companhias').doc(ciaAtual.id).update({'nome': nomeCtrl.text});
+                        final nomeAntigo = ciaAtual['nome'].toString();
+
+                        await LocalDatabase.instance
+                            .collection('companhias')
+                            .doc(ciaAtual.id)
+                            .update({'nome': novoNome});
+
+                        if (nomeAntigo != novoNome) {
+                          final jovensVinculados = await LocalDatabase.instance
+                              .collection('jovens')
+                              .where('companhia', isEqualTo: nomeAntigo)
+                              .snapshots()
+                              .first;
+                          for (final jovem in jovensVinculados.docs) {
+                            await LocalDatabase.instance
+                                .collection('jovens')
+                                .doc(jovem.id)
+                                .update({'companhia': novoNome});
+                          }
+
+                          final usuarios = await LocalDatabase.instance
+                              .collection('usuarios')
+                              .snapshots()
+                              .first;
+                          for (final usuario in usuarios.docs) {
+                            final dados = usuario.data();
+                            final atribuicoes =
+                                dados['companhiasResponsaveis'] is List
+                                    ? List<String>.from(
+                                        dados['companhiasResponsaveis'],
+                                      )
+                                    : <String>[];
+                            final atualizaCompanhia =
+                                dados['companhia'] == nomeAntigo;
+                            final atualizaAtribuicoes =
+                                atribuicoes.contains(nomeAntigo);
+
+                            if (atualizaCompanhia || atualizaAtribuicoes) {
+                              await LocalDatabase.instance
+                                  .collection('usuarios')
+                                  .doc(usuario.id)
+                                  .update({
+                                if (atualizaCompanhia) 'companhia': novoNome,
+                                if (atualizaAtribuicoes)
+                                  'companhiasResponsaveis': atribuicoes
+                                      .map((nome) =>
+                                          nome == nomeAntigo ? novoNome : nome)
+                                      .toList(),
+                              });
+                            }
+                          }
+                        }
                       } else {
-                        await LocalDatabase.instance.collection('companhias').add({
-                          'nome': nomeCtrl.text,
+                        await LocalDatabase.instance
+                            .collection('companhias')
+                            .add({
+                          'nome': novoNome,
                           'criadoEm': DateTime.now().toIso8601String(),
                         });
                       }
-                      // ignore: use_build_context_synchronously
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Companhia salva com sucesso!"), backgroundColor: Colors.green));
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Companhia salva com sucesso!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
                     } catch (e) {
-                      // ignore: use_build_context_synchronously
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao salvar: $e"), backgroundColor: Colors.redAccent));
+                      if (mounted) {
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erro ao salvar: $e'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
                     }
                   },
                   icon: const Icon(Icons.save, color: Colors.white),
@@ -274,8 +362,48 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                               onPressed: () async {
+                                final nomeCompanhia = cia['nome'].toString();
+                                final jovensVinculados = await LocalDatabase.instance
+                                    .collection('jovens')
+                                    .where('companhia', isEqualTo: nomeCompanhia)
+                                    .snapshots()
+                                    .first;
+                                final usuarios = await LocalDatabase.instance
+                                    .collection('usuarios')
+                                    .snapshots()
+                                    .first;
+                                final possuiLideranca = usuarios.docs.any((usuario) {
+                                  final atribuicoes =
+                                      usuario['companhiasResponsaveis'] is List
+                                          ? List<String>.from(
+                                              usuario['companhiasResponsaveis'],
+                                            )
+                                          : <String>[];
+                                  return usuario['companhia'] == nomeCompanhia ||
+                                      atribuicoes.contains(nomeCompanhia);
+                                });
+
+                                if (jovensVinculados.docs.isNotEmpty ||
+                                    possuiLideranca) {
+                                  Navigator.of(context).pop(false);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(this.context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Reatribua os jovens e a equipe antes de excluir esta companhia.',
+                                        ),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+
                                 Navigator.of(context).pop(true);
-                                await LocalDatabase.instance.collection('companhias').doc(cia.id).delete();
+                                await LocalDatabase.instance
+                                    .collection('companhias')
+                                    .doc(cia.id)
+                                    .delete();
                               }, 
                               child: const Text("Excluir", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
