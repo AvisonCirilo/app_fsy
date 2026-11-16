@@ -57,7 +57,18 @@ As telas **Gerenciar Consultores** e **Gerenciar Assistentes** permitem à Dire�
 
 ## Painel de Logística
 
-A função Logística recebe uma aba própria com os quantitativos de jovens cadastrados, jovens alojados, pendências de alojamento e quartos em uso. O mapa permite alocar ou transferir jovens entre quartos sem expor os campos de saúde e medicamentos.
+A função Logística recebe uma dashboard interativa com indicadores clicáveis de jovens cadastrados, jovens alojados, jovens sem alojamento e quartos em uso.
+
+Ao abrir os detalhes, a equipe pode:
+- Consultar a lista de todos os jovens e identificar a situação do alojamento.
+- Visualizar jovens alojados em uma hierarquia expansível: andar → quarto → jovens.
+- Consultar as pendências de alojamento e iniciar a alocação de um jovem.
+- Explorar quartos em uso por andar e conferir quantos quartos e jovens estão em cada nível.
+- Selecionar o andar e informar a identificação do quarto ao alocar ou transferir um jovem.
+
+Os registros antigos que possuem apenas o campo `quarto` continuam compatíveis. Quando o nome do quarto termina em um número de três ou mais dígitos (por exemplo, `Bloco A - 101`), o sistema infere o andar pelo número. Novas alocações também salvam o campo `andar` separadamente para manter a organização.
+
+O painel não exibe informações de saúde ou medicamentos dos jovens. Os dados continuam locais e fictícios enquanto o Firebase estiver desconectado.
 
 ## Dados locais
 
