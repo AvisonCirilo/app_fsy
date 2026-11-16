@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../data/app_permissions.dart';
+import '../../../data/local_auth_service.dart';
 import '../../../data/local_database.dart';
 
 class ListaJovensTela extends StatefulWidget {
@@ -406,6 +408,18 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
 
   @override
   Widget build(BuildContext context) {
+    final permissions = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (!permissions.canManageYouthRegistry) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Lista de Jovens")),
+        body: const Center(
+          child: Text('Apenas Direção e Coordenação podem gerenciar o cadastro geral de jovens.'),
+        ),
+      );
+    }
+
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
