@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../data/local_auth_service.dart';
 
 import '../components/meu_campo_texto.dart';
 import '../components/meu_botao.dart';
-import 'home_tela.dart';
 import 'recuperar_senhas.dart';
 
 class TelaLogin extends StatefulWidget {
