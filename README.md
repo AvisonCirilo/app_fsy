@@ -43,7 +43,7 @@ O acesso é definido pela responsabilidade de cada função:
 | Coordenador Assistente | Gestão operacional de exatamente duas companhias atribuídas: metas e acompanhamento dos jovens vinculados |
 | Consultor | Acompanhamento da companhia associada ao próprio perfil |
 
-Diretores e Coordenadores podem cadastrar Coordenadores Assistentes e atribuir exatamente duas companhias diferentes a cada um. O assistente não pode cadastrar jovens no registro geral, criar ou renomear companhias, administrar usuários ou acessar outras companhias.
+Diretores e Coordenadores podem cadastrar e gerenciar Consultores e Coordenadores Assistentes. Ao cadastrar um assistente, devem atribuir exatamente duas companhias diferentes. O assistente não pode cadastrar jovens no registro geral, criar ou renomear companhias, administrar usuários ou acessar outras companhias.
 
 A Logística não administra o cadastro geral de jovens nem a estrutura das companhias. Seu painel apresenta os quantitativos necessários à hospedagem e permite operar o mapa de alojamentos. O Administrador mantém acesso de supervisão ao mapa.
 
@@ -53,7 +53,7 @@ A tela de permissões está centralizada em `lib/data/app_permissions.dart`. As 
 
 ## Gestão de equipe
 
-A tela **Gerenciar Assistentes** permite cadastrar e editar coordenadores assistentes, atribuindo duas companhias existentes. A atribuição fica no campo `companhiasResponsaveis` do perfil local.
+As telas **Gerenciar Consultores** e **Gerenciar Assistentes** permitem à Direção e Coordenação administrar a equipe operacional. Na tela de assistentes, cada conta recebe exatamente duas companhias existentes. A atribuição fica no campo `companhiasResponsaveis` do perfil local.
 
 ## Painel de Logística
 
