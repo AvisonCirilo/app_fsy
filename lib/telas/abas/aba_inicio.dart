@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/local_database.dart';
 import 'admin/mapa_alojamentos.dart';
 
 // Importa as telas administrativas para criar atalhos para os líderes
@@ -300,8 +300,8 @@ class _AbaInicioState extends State<AbaInicio> {
       children: [
         Row(children: [Icon(iconeJovens, color: corIconeJovens, size: 22), const SizedBox(width: 8), Text(tituloJovens, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]),
         const SizedBox(height: 10),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('jovens').where('consultor', isEqualTo: _nomeConsultorLogado).snapshots(),
+        StreamBuilder<LocalQuerySnapshot>(
+          stream: LocalDatabase.instance.collection('jovens').where('consultor', isEqualTo: _nomeConsultorLogado).snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text("Nenhum jovem associado a você ainda.");
@@ -427,8 +427,8 @@ class _AbaInicioState extends State<AbaInicio> {
           border: Border.all(color: isEscuro ? Colors.white12 : Colors.grey.shade200),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
         ),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection(colecao).snapshots(),
+        child: StreamBuilder<LocalQuerySnapshot>(
+          stream: LocalDatabase.instance.collection(colecao).snapshots(),
           builder: (context, snapshot) {
             String valor = "..."; 
             if (snapshot.hasData) {
