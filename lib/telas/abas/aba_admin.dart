@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; 
+import '../../data/local_database.dart'; 
 
 // Importação das telas de gestão
 import './admin/gerenciar_usuarios.dart';
@@ -105,8 +105,8 @@ class _AbaAdminState extends State<AbaAdmin> {
           border: Border.all(color: isEscuro ? Colors.white12 : Colors.grey.shade200),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
         ),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection(colecao).snapshots(),
+        child: StreamBuilder<LocalQuerySnapshot>(
+          stream: LocalDatabase.instance.collection(colecao).snapshots(),
           builder: (context, snapshot) {
             String valor = "..."; 
             
