@@ -207,6 +207,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
                       );
 
                       if (mounted) {
+                        setStateDialog(() => carregando = false);
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -217,6 +218,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
                       }
                     } on LocalAuthException catch (e) {
                       if (mounted) {
+                        setStateDialog(() => carregando = false);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(e.message),
@@ -224,8 +226,16 @@ class _AbaPerfilState extends State<AbaPerfil> {
                           ),
                         );
                       }
-                    } finally {
-                      setStateDialog(() => carregando = false);
+                    } catch (e) {
+                      if (mounted) {
+                        setStateDialog(() => carregando = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Não foi possível alterar a senha: $e"),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
                     }
                   },
                   child: carregando 
