@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart'; 
+import '../../../data/local_database.dart';
+import '../../../data/local_auth_service.dart'; 
 
 class GerenciarUsuarios extends StatefulWidget {
   const GerenciarUsuarios({super.key});
@@ -24,9 +23,9 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
   }
 
   // ==========================================
-  // PAINEL INTELIGENTE (CRIAR E EDITAR NO FIRESTORE)
+  // PAINEL INTELIGENTE (CRIAR E EDITAR NO BANCO LOCAL)
   // ==========================================
-  void _mostrarPainelUsuario({DocumentSnapshot? usuarioAtual}) {
+  void _mostrarPainelUsuario({LocalLocalDocumentSnapshot? usuarioAtual}) {
     bool isEdicao = usuarioAtual != null; 
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     bool ocultarSenha = true; 
@@ -148,11 +147,11 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                           if (nomeCtrl.text.isEmpty || usuarioCtrl.text.isEmpty) return;
 
                           Navigator.pop(context); 
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Salvando no servidor..."), backgroundColor: Colors.grey.shade700));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Salvando localmente..."), backgroundColor: Colors.grey.shade700));
 
                           try {
                             if (isEdicao) {
-                              await FirebaseFirestore.instance.collection('usuarios').doc(usuarioAtual.id).update({
+                              await LocalDatabase.instance.collection('usuarios').doc(usuarioAtual.id).update({
                                 'nome': nomeCtrl.text,
                                 'funcao': funcaoSelecionada,
                                 'saude': saudeCtrl.text,
@@ -167,22 +166,17 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                                 return;
                               }
                               
-                              FirebaseApp appSecundario = await Firebase.initializeApp(name: 'AppSecundario', options: Firebase.app().options);
-                              UserCredential cred = await FirebaseAuth.instanceFor(app: appSecundario).createUserWithEmailAndPassword(
-                                email: "${usuarioCtrl.text.trim().toLowerCase()}@fsy.com", 
-                                password: senhaCtrl.text.trim()
+                              await LocalAuthService.instance.createAccount(
+                                username: usuarioCtrl.text.trim().toLowerCase(),
+                                password: senhaCtrl.text.trim(),
+                                profile: {
+                                  'nome': nomeCtrl.text,
+                                  'funcao': funcaoSelecionada,
+                                  'saude': saudeCtrl.text,
+                                  'medicamento': medicamentoCtrl.text,
+                                  'companhia': 'A Definir',
+                                },
                               );
-                              
-                              await FirebaseFirestore.instance.collection('usuarios').doc(cred.user!.uid).set({
-                                'nome': nomeCtrl.text,
-                                'funcao': funcaoSelecionada,
-                                'usuario': usuarioCtrl.text.trim().toLowerCase(),
-                                'saude': saudeCtrl.text,
-                                'medicamento': medicamentoCtrl.text,
-                                'companhia': 'A Definir', 
-                                'criadoEm': FieldValue.serverTimestamp(),
-                              });
-                              
                               await appSecundario.delete(); 
                             }
                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Utilizador ${isEdicao ? 'atualizado' : 'criado'} com sucesso!"), backgroundColor: Colors.green));
@@ -230,8 +224,8 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
         icon: const Icon(Icons.person_add, size: 20),
         label: const Text("Novo", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('usuarios').snapshots(),
+      body: StreamBuilder<LocalQuerySnapshot>(
+        stream: LocalDatabase.instance.collection('usuarios').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.amber));
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text("Nenhum utilizador encontrado.", style: TextStyle(color: Colors.grey.shade600)));
@@ -274,7 +268,7 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                               onPressed: () async {
                                 Navigator.of(context).pop(true);
-                                await FirebaseFirestore.instance.collection('usuarios').doc(usuario.id).delete();
+                                await LocalAuthService.instance.deleteAccount(usuario.id);
                               }, 
                               child: const Text("Excluir", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
