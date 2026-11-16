@@ -26,7 +26,7 @@ class AppPermissions {
           .where((value) => value.isNotEmpty)
           .toSet()
           .toList();
-      if (companies.isNotEmpty) return companies;
+      if (companies.isNotEmpty) return companies.take(2).toList();
     }
 
     final singleCompany = (profile['companhia'] ?? '').toString().trim();
