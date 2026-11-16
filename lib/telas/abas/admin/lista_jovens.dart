@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../data/app_permissions.dart';
 import '../../../data/local_auth_service.dart';
 import '../../../data/local_database.dart';
+import '../../../data/lodging_structure.dart';
 
 class ListaJovensTela extends StatefulWidget {
   const ListaJovensTela({super.key});
@@ -275,7 +276,16 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                             "saude": saudeCtrl.text.isEmpty ? "Nenhuma" : saudeCtrl.text,
                             "medicamento": medicamentoCtrl.text,
                             "companhia": companhiaCtrl.text.isEmpty ? "A Definir" : companhiaCtrl.text,
-                            "quarto": quartoCtrl.text,
+                            "quarto": quartoCtrl.text.trim(),
+                            "andar": LodgingStructure.floorFromRoom(
+                                  quartoCtrl.text.trim(),
+                                ) ??
+                                (isEdicao &&
+                                        quartoCtrl.text.trim() ==
+                                            (jovemAtual['quarto'] ?? '')
+                                                .toString()
+                                    ? jovemAtual['andar']
+                                    : null),
                             "membro": membroIgreja,
                             "consultor": consultorSelecionado,
                           };
