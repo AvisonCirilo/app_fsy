@@ -365,38 +365,51 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
             subtitle: Text(
               '${andar.rooms.length} ${andar.rooms.length == 1 ? 'quarto em uso' : 'quartos em uso'} • ${andar.youthCount} jovens',
             ),
-            children: andar.rooms.map((quarto) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                child: Card(
-                  margin: EdgeInsets.zero,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.035)
-                      : Colors.grey.shade50,
-                  child: ExpansionTile(
-                    leading: const Icon(
-                      Icons.meeting_room_outlined,
-                      color: Colors.teal,
+            children: andar.rooms.isEmpty
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Nenhum quarto em uso neste andar.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ),
                     ),
-                    title: Text(
-                      quarto.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      '${quarto.youth.length} ${quarto.youth.length == 1 ? 'jovem alojado' : 'jovens alojados'}',
-                    ),
-                    children: quarto.youth
-                        .map(
-                          (jovem) => _cartaoJovem(
-                            jovem,
-                            mostrarStatus: true,
+                  ]
+                : andar.rooms.map((quarto) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.035)
+                            : Colors.grey.shade50,
+                        child: ExpansionTile(
+                          leading: const Icon(
+                            Icons.meeting_room_outlined,
+                            color: Colors.teal,
                           ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              );
-            }).toList(),
+                          title: Text(
+                            quarto.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            '${quarto.youth.length} ${quarto.youth.length == 1 ? 'jovem alojado' : 'jovens alojados'}',
+                          ),
+                          children: quarto.youth
+                              .map(
+                                (jovem) => _cartaoJovem(
+                                  jovem,
+                                  mostrarStatus: true,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    );
+                  }).toList(),
           ),
         );
       },
