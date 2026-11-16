@@ -15,6 +15,8 @@ class _GerenciarAssistentesState extends State<GerenciarAssistentes> {
   Future<void> _abrirFormulario({LocalDocumentSnapshot? assistente}) async {
     final snapshot =
         await LocalDatabase.instance.collection('companhias').snapshots().first;
+    if (!mounted) return;
+
     final companhias = snapshot.docs
         .map((doc) => (doc['nome'] ?? '').toString())
         .where((nome) => nome.isNotEmpty)
