@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../data/local_database.dart';
 
 class GerenciarCompanhias extends StatefulWidget {
   const GerenciarCompanhias({super.key});
@@ -13,7 +13,7 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
   // ==========================================
   // PAINEL PARA CRIAR/EDITAR NOME DA COMPANHIA
   // ==========================================
-  void _mostrarPainelCompanhia({DocumentSnapshot? ciaAtual}) {
+  void _mostrarPainelCompanhia({LocalDocumentSnapshot? ciaAtual}) {
     bool isEdicao = ciaAtual != null;
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     final nomeCtrl = TextEditingController(text: isEdicao ? ciaAtual['nome'] : "");
@@ -72,11 +72,11 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
 
                     try {
                       if (isEdicao) {
-                        await FirebaseFirestore.instance.collection('companhias').doc(ciaAtual.id).update({'nome': nomeCtrl.text});
+                        await LocalDatabase.instance.collection('companhias').doc(ciaAtual.id).update({'nome': nomeCtrl.text});
                       } else {
-                        await FirebaseFirestore.instance.collection('companhias').add({
+                        await LocalDatabase.instance.collection('companhias').add({
                           'nome': nomeCtrl.text,
-                          'criadoEm': FieldValue.serverTimestamp(),
+                          'criadoEm': DateTime.now().toIso8601String(),
                         });
                       }
                       // ignore: use_build_context_synchronously
@@ -131,8 +131,8 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
                       // BUSCA LIDERANÇA
                       const Text("Liderança", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
                       const SizedBox(height: 10),
-                      StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance.collection('usuarios').where('companhia', isEqualTo: nomeCompanhia).snapshots(),
+                      StreamBuilder<LocalQuerySnapshot>(
+                        stream: LocalDatabase.instance.collection('usuarios').where('companhia', isEqualTo: nomeCompanhia).snapshots(),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text("Nenhum líder associado a esta companhia.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic));
                           return Column(
@@ -156,8 +156,8 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
                       // BUSCA JOVENS
                       const Text("Jovens", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
                       const SizedBox(height: 10),
-                      StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance.collection('jovens').where('companhia', isEqualTo: nomeCompanhia).snapshots(),
+                      StreamBuilder<LocalQuerySnapshot>(
+                        stream: LocalDatabase.instance.collection('jovens').where('companhia', isEqualTo: nomeCompanhia).snapshots(),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text("Nenhum jovem associado a esta companhia.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic));
                           return Column(
@@ -201,8 +201,8 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
         icon: const Icon(Icons.flag),
         label: const Text("Nova Cia", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('companhias').orderBy('criadoEm').snapshots(),
+      body: StreamBuilder<LocalQuerySnapshot>(
+        stream: LocalDatabase.instance.collection('companhias').orderBy('criadoEm').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
@@ -261,7 +261,7 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                               onPressed: () async {
                                 Navigator.of(context).pop(true);
-                                await FirebaseFirestore.instance.collection('companhias').doc(cia.id).delete();
+                                await LocalDatabase.instance.collection('companhias').doc(cia.id).delete();
                               }, 
                               child: const Text("Excluir", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
