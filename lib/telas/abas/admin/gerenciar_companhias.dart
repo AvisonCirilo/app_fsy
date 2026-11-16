@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../data/app_permissions.dart';
+import '../../../data/local_auth_service.dart';
 import '../../../data/local_database.dart';
 
 class GerenciarCompanhias extends StatefulWidget {
@@ -188,6 +190,18 @@ class _GerenciarCompanhiasState extends State<GerenciarCompanhias> {
 
   @override
   Widget build(BuildContext context) {
+    final permissions = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (!permissions.canManageCompanyStructure) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Gerenciar Companhias")),
+        body: const Center(
+          child: Text('Você não tem permissão para alterar a estrutura das companhias.'),
+        ),
+      );
+    }
+
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
