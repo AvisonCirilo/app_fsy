@@ -41,6 +41,13 @@ class _TelaLoginState extends State<TelaLogin> {
     }
   }
 
+  @override
+  void dispose() {
+    _userController.dispose();
+    _senhaController.dispose();
+    super.dispose();
+  }
+
   void _mostrarAviso(String mensagem, {Color cor = Colors.redAccent}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensagem), backgroundColor: cor));
   }
