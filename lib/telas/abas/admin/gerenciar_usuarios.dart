@@ -79,33 +79,60 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                     _construirCampo("Nome Completo", nomeCtrl, Icons.badge, isEscuro),
                     const SizedBox(height: 15),
                     
-                    // MENU ATUALIZADO COM OS NOVOS CARGOS
-                    DropdownButtonFormField<String>(
-                      value: funcaoSelecionada,
-                      dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
-                      style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
-                      icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade700),
-                      decoration: InputDecoration(
-                        labelText: "Função / Cargo",
-                        labelStyle: TextStyle(color: Colors.grey.shade700),
-                        filled: true, fillColor: isEscuro ? Colors.black26 : Colors.grey.shade100,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade700, width: 1.5)),
-                        prefixIcon: Icon(Icons.work, color: Colors.grey.shade700, size: 20),
+                    if (isAdmin)
+                      DropdownButtonFormField<String>(
+                        value: funcaoSelecionada,
+                        dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                        style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
+                        icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade700),
+                        decoration: InputDecoration(
+                          labelText: "Função / Cargo",
+                          labelStyle: TextStyle(color: Colors.grey.shade700),
+                          filled: true,
+                          fillColor: isEscuro ? Colors.black26 : Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.work,
+                            color: Colors.grey.shade700,
+                            size: 20,
+                          ),
+                        ),
+                        items: [
+                          "Administrador",
+                          "Diretor",
+                          "Coordenador",
+                          if (isEdicao &&
+                              funcaoSelecionada ==
+                                  AppPermissions.assistantCoordinator)
+                            "Coordenador Assistente",
+                          "Logística",
+                          "Consultor",
+                        ].map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+                        onChanged: (v) =>
+                            setStateSheet(() => funcaoSelecionada = v!),
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: isEscuro ? Colors.black26 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.person_outline, color: Colors.blue),
+                            SizedBox(width: 10),
+                            Text(
+                              "Cargo: Consultor",
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
                       ),
-                      items: [
-                        "Administrador",
-                        "Diretor",
-                        "Coordenador",
-                        if (isEdicao &&
-                            funcaoSelecionada ==
-                                AppPermissions.assistantCoordinator)
-                          "Coordenador Assistente",
-                        "Logística",
-                        "Consultor",
-                      ].map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
-                      onChanged: (v) => setStateSheet(() => funcaoSelecionada = v!),
-                    ),
                     const SizedBox(height: 15),
 
                     Row(
@@ -161,24 +188,27 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
 
                           try {
                             if (isEdicao) {
-                              await LocalDatabase.instance.collection('usuarios').doc(usuarioAtual.id).update({
-                                'nome': nomeCtrl.text,
-                                'funcao': funcaoSelecionada,
-                                'saude': saudeCtrl.text,
-                                'medicamento': medicamentoCtrl.text,
-                                'adjunta': adjuntaCtrl.text,
-                                'qtdJovens': qtdJovensCtrl.text,
-                                'quarto': quartoCtrl.text,
-                                'companhiasResponsaveis':
-                                    funcaoSelecionada ==
-                                                AppPermissions.assistantCoordinator &&
-                                            usuarioAtual.data()['companhiasResponsaveis']
-                                                is List
-                                        ? List<String>.from(
-                                            usuarioAtual.data()['companhiasResponsaveis'],
-                                          )
-                                        : <String>[],
-                              });
+                              await LocalAuthService.instance.updateAccountProfile(
+                                uid: usuarioAtual.id,
+                                updates: {
+                                  'nome': nomeCtrl.text,
+                                  'funcao': funcaoSelecionada,
+                                  'saude': saudeCtrl.text,
+                                  'medicamento': medicamentoCtrl.text,
+                                  'adjunta': adjuntaCtrl.text,
+                                  'qtdJovens': qtdJovensCtrl.text,
+                                  'quarto': quartoCtrl.text,
+                                  'companhiasResponsaveis':
+                                      funcaoSelecionada ==
+                                                  AppPermissions.assistantCoordinator &&
+                                              usuarioAtual.data()['companhiasResponsaveis']
+                                                  is List
+                                          ? List<String>.from(
+                                              usuarioAtual.data()['companhiasResponsaveis'],
+                                            )
+                                          : <String>[],
+                                },
+                              );
                             } else {
                               if (senhaCtrl.text.length < 6) {
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("A senha deve ter no mínimo 6 caracteres."), backgroundColor: Colors.redAccent));
@@ -235,19 +265,22 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
     final permissoes = AppPermissions.fromProfile(
       LocalAuthService.instance.currentUser?.profile ?? {},
     );
-    if (!permissoes.canManageAllUsers) {
+    if (!permissoes.canManageUsers) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Gerenciar Usuários")),
+        appBar: AppBar(title: const Text("Equipe")),
         body: const Center(
-          child: Text('Somente o Administrador pode gerenciar todas as contas.'),
+          child: Text('Você não tem permissão para gerenciar esta equipe.'),
         ),
       );
     }
 
+    final isAdmin = permissoes.canManageAllUsers;
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Gerenciar Usuários")),
+      appBar: AppBar(
+        title: Text(isAdmin ? "Gerenciar Usuários" : "Gerenciar Consultores"),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _mostrarPainelUsuario(), 
         backgroundColor: Colors.grey.shade700, foregroundColor: Colors.white,
@@ -260,7 +293,20 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.amber));
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text("Nenhum utilizador encontrado.", style: TextStyle(color: Colors.grey.shade600)));
 
-          final usuarios = snapshot.data!.docs;
+          final usuarios = snapshot.data!.docs.where((usuario) {
+            return isAdmin || usuario['funcao'] == AppPermissions.consultant;
+          }).toList();
+
+          if (usuarios.isEmpty) {
+            return Center(
+              child: Text(
+                isAdmin
+                    ? "Nenhum utilizador encontrado."
+                    : "Nenhum consultor cadastrado.",
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            );
+          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
