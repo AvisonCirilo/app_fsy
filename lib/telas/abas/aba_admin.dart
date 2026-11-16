@@ -123,11 +123,13 @@ class _AbaAdminState extends State<AbaAdmin> {
             ),
           ),
           const SizedBox(height: 10),
-          if (isAdmin)
+          if (permissoes.canManageUsers)
             _construirBotaoAcao(
               Icons.manage_accounts,
-              'Gerenciar Usuários',
-              'Gerenciar cargos, contas e acessos da equipe.',
+              isAdmin ? 'Gerenciar Usuários' : 'Gerenciar Consultores',
+              isAdmin
+                  ? 'Gerenciar cargos, contas e acessos da equipe.'
+                  : 'Cadastrar e atualizar consultores das companhias.',
               Colors.orange,
               isEscuro,
               _abrirTelaGerenciarUsuarios,
