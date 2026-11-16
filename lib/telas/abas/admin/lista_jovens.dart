@@ -484,7 +484,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                 // 1. Pega os dados do banco local e converte para a nossa lista local
                 List<Map<String, dynamic>> listaLocal = snapshot.data!.docs.map((doc) {
                   var dados = doc.data() as Map<String, dynamic>;
-                  dados['id'] = doc.id; // Guarda o ID único do Firebase
+                  dados['id'] = doc.id; // Guarda o ID único local
                   return dados;
                 }).toList();
 
