@@ -68,10 +68,6 @@ class LocalDatabase {
     );
   }
 
-  dynamic _copyValue(dynamic value) {
-    return jsonDecode(jsonEncode(value));
-  }
-
   Future<void> _persist(String collection) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
@@ -335,7 +331,7 @@ class LocalDocumentReference {
     if (!current.exists) {
       throw StateError('Registro local não encontrado: $id');
     }
-    return _database._set(collection, id, data, merge: true);
+    await _database._set(collection, id, data, merge: true);
   }
 
   Future<void> delete() {
