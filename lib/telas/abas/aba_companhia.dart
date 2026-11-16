@@ -95,7 +95,7 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
                 if (novaMetaController.text.trim().isNotEmpty) {
                   Navigator.pop(context);
                   
-                  // Adiciona a nova meta à lista existente e envia pro Firebase
+                  // Adiciona a nova meta à lista existente e salva localmente
                   metasAtuais.add({
                     "texto": novaMetaController.text.trim(),
                     "concluido": false,
