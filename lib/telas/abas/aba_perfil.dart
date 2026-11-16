@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/local_database.dart';
+import '../../data/local_auth_service.dart';
 
 import '../../main.dart'; 
 import '../login_tela.dart';
@@ -107,23 +107,30 @@ class _AbaPerfilState extends State<AbaPerfil> {
     
     await prefs.setBool('config_modo_escuro', _modoEscuro);
 
-    // Salva as alterações no Banco de Dados Real para que o Admin veja!
-    User? usuarioLogado = FirebaseAuth.instance.currentUser;
+    // O perfil é salvo apenas no armazenamento local de demonstração.
+    final usuarioLogado = LocalAuthService.instance.currentUser;
     if (usuarioLogado != null && _editando) {
       try {
-        await FirebaseFirestore.instance.collection('usuarios').doc(usuarioLogado.uid).update({
+        await LocalDatabase.instance
+            .collection('usuarios')
+            .doc(usuarioLogado.uid)
+            .update({
           'nome': _nomeController.text,
           'saude': _restricoesController.text,
           'quarto': _alojamentoController.text,
-          // Se for Admin, ele também pode ter alterado a companhia dele mesmo ou adjunta
           'companhia': _companhiaController.text,
           'adjunta': _adjuntaController.text,
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Perfil atualizado no servidor!"), backgroundColor: Colors.green));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Perfil atualizado neste dispositivo!"),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
       } catch (e) {
-         debugPrint("Erro ao atualizar Firestore: $e");
+        debugPrint("Erro ao atualizar perfil local: $e");
       }
     }
   }
@@ -195,30 +202,28 @@ class _AbaPerfilState extends State<AbaPerfil> {
                     setStateDialog(() => carregando = true);
 
                     try {
-                      User? user = FirebaseAuth.instance.currentUser;
-                      if (user != null && user.email != null) {
-                        // 1. Reautentica o usuário para provar que é ele mesmo
-                        AuthCredential credential = EmailAuthProvider.credential(email: user.email!, password: senhaAtualCtrl.text);
-                        await user.reauthenticateWithCredential(credential);
-                        
-                        // 2. Atualiza a senha se a atual estiver correta
-                        await user.updatePassword(novaSenhaCtrl.text);
-                        
-                        if (mounted) {
-                          // ignore: use_build_context_synchronously
-                          Navigator.pop(context);
-                          // ignore: use_build_context_synchronously
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Senha alterada com sucesso!"), backgroundColor: Colors.green));
-                        }
-                      }
-                    } on FirebaseAuthException catch (e) {
-                      String erro = "Erro ao alterar senha.";
-                      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-                        erro = "A senha atual está incorreta.";
-                      }
+                      await LocalAuthService.instance.changePassword(
+                        currentPassword: senhaAtualCtrl.text,
+                        newPassword: novaSenhaCtrl.text,
+                      );
+
                       if (mounted) {
-                        // ignore: use_build_context_synchronously
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro), backgroundColor: Colors.redAccent));
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Senha alterada com sucesso!"),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } on LocalAuthException catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(e.message),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
                       }
                     } finally {
                       setStateDialog(() => carregando = false);
@@ -301,13 +306,9 @@ class _AbaPerfilState extends State<AbaPerfil> {
     );
   }
 
-  void _sairDaConta() async {
-    await FirebaseAuth.instance.signOut(); // Desloga do Firebase também
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const TelaLogin()), 
-      (Route<dynamic> route) => false, 
-    );
+  Future<void> _sairDaConta() async {
+    // A mudança de sessão faz o ChecadorDeSessao voltar ao login.
+    await LocalAuthService.instance.signOut();
   }
 
   @override
