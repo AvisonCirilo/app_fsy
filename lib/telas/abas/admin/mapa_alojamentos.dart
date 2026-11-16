@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../data/local_database.dart';
 
 class MapaAlojamentos extends StatefulWidget {
   const MapaAlojamentos({super.key});
@@ -58,7 +58,7 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
                     Navigator.pop(context);
                     
                     try {
-                      await FirebaseFirestore.instance.collection('jovens').doc(jovemId).update({
+                      await LocalDatabase.instance.collection('jovens').doc(jovemId).update({
                         'quarto': quartoCtrl.text.trim()
                       });
                       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Jovem alocado com sucesso!"), backgroundColor: Colors.green));
@@ -95,8 +95,8 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
             ],
           ),
         ),
-        body: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('jovens').snapshots(),
+        body: StreamBuilder<LocalQuerySnapshot>(
+          stream: LocalDatabase.instance.collection('jovens').snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator(color: Colors.indigo));
@@ -107,8 +107,8 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
             }
 
             // O nosso algoritmo de triagem logística
-            Map<String, List<DocumentSnapshot>> quartos = {};
-            List<DocumentSnapshot> semQuarto = [];
+            Map<String, List<LocalDocumentSnapshot>> quartos = {};
+            List<LocalDocumentSnapshot> semQuarto = [];
 
             for (var doc in snapshot.data!.docs) {
               String quarto = (doc.data() as Map).containsKey('quarto') ? doc['quarto'].toString().trim() : "";
@@ -138,7 +138,7 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
                       itemCount: nomesQuartos.length,
                       itemBuilder: (context, index) {
                         String nomeQuarto = nomesQuartos[index];
-                        List<DocumentSnapshot> jovensNoQuarto = quartos[nomeQuarto]!;
+                        List<LocalDocumentSnapshot> jovensNoQuarto = quartos[nomeQuarto]!;
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
