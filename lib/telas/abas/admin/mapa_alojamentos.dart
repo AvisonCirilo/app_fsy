@@ -283,7 +283,7 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: jovens.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 6),
+      separatorBuilder: (_, _) => const SizedBox(height: 6),
       itemBuilder: (context, index) => Card(
         margin: EdgeInsets.zero,
         child: _cartaoJovem(jovens[index], mostrarStatus: true),
@@ -303,7 +303,7 @@ class _MapaAlojamentosState extends State<MapaAlojamentos> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: jovens.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final jovem = jovens[index];
         return Card(
