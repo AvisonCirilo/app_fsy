@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../data/local_database.dart'; 
 
-// Importação das telas de gestão
+import '../../data/app_permissions.dart';
+import '../../data/local_auth_service.dart';
+import '../../data/local_database.dart';
 import './admin/gerenciar_usuarios.dart';
 import 'admin/lista_jovens.dart';
 import 'admin/gerenciar_companhias.dart';
@@ -15,136 +16,266 @@ class AbaAdmin extends StatefulWidget {
 }
 
 class _AbaAdminState extends State<AbaAdmin> {
-
-  // ==========================================
-  // 1. ROTAS DE NAVEGAÇÃO
-  // ==========================================
   void _abrirTelaGerenciarUsuarios() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const GerenciarUsuarios()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+    );
   }
 
   void _abrirTelaListaJovens() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const ListaJovensTela()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ListaJovensTela()),
+    );
   }
 
   void _abrirTelaGerenciarCompanhias() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const GerenciarCompanhias()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const GerenciarCompanhias()),
+    );
   }
 
   void _abrirMapaAlojamentos() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const MapaAlojamentos()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MapaAlojamentos()),
+    );
   }
 
-  // ==========================================
-  // 2. CONSTRUÇÃO DA TELA PRINCIPAL
-  // ==========================================
   @override
   Widget build(BuildContext context) {
-    bool isEscuro = Theme.of(context).brightness == Brightness.dark;
-    Color corTextoSecundario = isEscuro ? Colors.white70 : Colors.black54;
+    final perfil = LocalAuthService.instance.currentUser?.profile ?? {};
+    final permissoes = AppPermissions.fromProfile(perfil);
+
+    if (!permissoes.canAccessAdminPanel) {
+      return const Center(
+        child: Text('Você não tem permissão para acessar esta área.'),
+      );
+    }
+
+    final isEscuro = Theme.of(context).brightness == Brightness.dark;
+    final corTextoSecundario = isEscuro ? Colors.white70 : Colors.black54;
+    final isAdmin = permissoes.isAdministrator;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- Cabeçalho ---
-          const Text("Painel da Liderança", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+          Text(
+            isAdmin ? 'Painel Administrativo' : 'Gestão do Evento',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple,
+            ),
+          ),
           const SizedBox(height: 5),
-          Text("Visão geral em Tempo Real", style: TextStyle(fontSize: 14, color: corTextoSecundario)),
+          Text(
+            isAdmin
+                ? 'Visão geral e controle do aplicativo.'
+                : 'Gestão de participantes, companhias e equipe.',
+            style: TextStyle(fontSize: 14, color: corTextoSecundario),
+          ),
           const SizedBox(height: 20),
-          
-          // --- Cards de Estatística (Firestore) ---
           Row(
             children: [
-              _construirCardRealTime("Jovens", Icons.face, Colors.blue, 'jovens'),
+              _construirCardRealTime(
+                'Jovens',
+                Icons.face,
+                Colors.blue,
+                'jovens',
+              ),
               const SizedBox(width: 10),
-              _construirCardRealTime("Equipe", Icons.badge, Colors.teal, 'usuarios'),
+              _construirCardRealTime(
+                'Equipe',
+                Icons.badge,
+                Colors.teal,
+                'usuarios',
+              ),
               const SizedBox(width: 10),
-              _construirCardRealTime("Companhias", Icons.flag, Colors.orange, 'companhias'),
+              _construirCardRealTime(
+                'Companhias',
+                Icons.flag,
+                Colors.orange,
+                'companhias',
+              ),
             ],
           ),
           const SizedBox(height: 35),
-
-          // --- Gestão de Pessoas ---
-          Text("Gestão de Pessoas", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: corTextoSecundario, letterSpacing: 1.2)),
+          Text(
+            isAdmin ? 'Gestão de Pessoas' : 'Equipe e Participantes',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: corTextoSecundario,
+              letterSpacing: 1.2,
+            ),
+          ),
           const SizedBox(height: 10),
-          
-          _construirBotaoAcao(Icons.manage_accounts, "Gerenciar Usuários", "Editar dados, alterar acessos e redefinir senhas da Liderança", Colors.orange, isEscuro, _abrirTelaGerenciarUsuarios),
-          _construirBotaoAcao(Icons.format_list_bulleted, "Lista de Jovens", "Pesquisar, adicionar e gerenciar todos os jovens cadastrados", Colors.green, isEscuro, _abrirTelaListaJovens),
-          
+          _construirBotaoAcao(
+            Icons.manage_accounts,
+            isAdmin ? 'Gerenciar Usuários' : 'Gerenciar Assistentes',
+            isAdmin
+                ? 'Gerenciar cargos, contas e acessos da equipe.'
+                : 'Cadastrar coordenadores assistentes e atribuir duas companhias.',
+            Colors.orange,
+            isEscuro,
+            _abrirTelaGerenciarUsuarios,
+          ),
+          _construirBotaoAcao(
+            Icons.format_list_bulleted,
+            'Lista de Jovens',
+            'Pesquisar, cadastrar e gerenciar os participantes do evento.',
+            Colors.green,
+            isEscuro,
+            _abrirTelaListaJovens,
+          ),
           const SizedBox(height: 25),
-
-          // --- Organização e Logística ---
-          Text("Organização & Logística", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: corTextoSecundario, letterSpacing: 1.2)),
+          Text(
+            'Organização do Evento',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: corTextoSecundario,
+              letterSpacing: 1.2,
+            ),
+          ),
           const SizedBox(height: 10),
-          
-          _construirBotaoAcao(Icons.groups, "Gerenciar Companhias", "Criar companhias e distribuir jovens", Colors.deepPurple, isEscuro, _abrirTelaGerenciarCompanhias),
-          // LIGAÇÃO CORRIGIDA AQUI: O botão agora chama o _abrirMapaAlojamentos em vez de () {}
-          _construirBotaoAcao(Icons.hotel, "Mapa de Alojamentos", "Verificar distribuição de quartos", Colors.indigo, isEscuro, _abrirMapaAlojamentos),
-          
+          _construirBotaoAcao(
+            Icons.groups,
+            'Gerenciar Companhias',
+            'Criar companhias e organizar a distribuição dos jovens.',
+            Colors.deepPurple,
+            isEscuro,
+            _abrirTelaGerenciarCompanhias,
+          ),
+          if (permissoes.canAccessLodging) ...[
+            _construirBotaoAcao(
+              Icons.hotel,
+              'Mapa de Alojamentos',
+              'Supervisionar a distribuição dos quartos.',
+              Colors.indigo,
+              isEscuro,
+              _abrirMapaAlojamentos,
+            ),
+          ],
           const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  // ==========================================
-  // 3. WIDGETS AUXILIARES (REUTILIZÁVEIS)
-  // ==========================================
-  
-  // Widget que lê do Firestore e atualiza o número em tempo real
-  Widget _construirCardRealTime(String titulo, IconData icone, Color cor, String colecao) {
-    bool isEscuro = Theme.of(context).brightness == Brightness.dark;
+  Widget _construirCardRealTime(
+    String titulo,
+    IconData icone,
+    Color cor,
+    String colecao,
+  ) {
+    final isEscuro = Theme.of(context).brightness == Brightness.dark;
+
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
           color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: isEscuro ? Colors.white12 : Colors.grey.shade200),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+          border: Border.all(
+            color: isEscuro ? Colors.white12 : Colors.grey.shade200,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: StreamBuilder<LocalQuerySnapshot>(
           stream: LocalDatabase.instance.collection(colecao).snapshots(),
           builder: (context, snapshot) {
-            String valor = "..."; 
-            
-            if (snapshot.hasData) {
-              valor = snapshot.data!.docs.length.toString();
-            }
+            final valor = snapshot.hasData
+                ? snapshot.data!.docs.length.toString()
+                : '...';
 
             return Column(
               children: [
                 Icon(icone, color: cor, size: 28),
                 const SizedBox(height: 8),
-                Text(valor, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Text(titulo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  valor,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
               ],
             );
-          }
+          },
         ),
       ),
     );
   }
 
-  // Widget que cria o design padrão dos botões de menu
-  Widget _construirBotaoAcao(IconData icone, String titulo, String subtitulo, Color cor, bool isEscuro, VoidCallback acao) {
+  Widget _construirBotaoAcao(
+    IconData icone,
+    String titulo,
+    String subtitulo,
+    Color cor,
+    bool isEscuro,
+    VoidCallback acao,
+  ) {
     return Card(
-      elevation: 0, 
-      color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white, 
+      elevation: 0,
+      color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: isEscuro ? Colors.white12 : Colors.grey.shade200)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          padding: const EdgeInsets.all(10), 
-          decoration: BoxDecoration(color: cor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)), 
-          child: Icon(icone, color: cor)
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(
+          color: isEscuro ? Colors.white12 : Colors.grey.shade200,
         ),
-        title: Text(titulo, style: TextStyle(fontWeight: FontWeight.bold, color: isEscuro ? Colors.white : Colors.black87)),
-        subtitle: Text(subtitulo, style: TextStyle(fontSize: 12, color: isEscuro ? Colors.white54 : Colors.black54)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 4,
+        ),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: cor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icone, color: cor),
+        ),
+        title: Text(
+          titulo,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isEscuro ? Colors.white : Colors.black87,
+          ),
+        ),
+        subtitle: Text(
+          subtitulo,
+          style: TextStyle(
+            fontSize: 12,
+            color: isEscuro ? Colors.white54 : Colors.black54,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 14,
+          color: Colors.grey,
+        ),
         onTap: acao,
       ),
     );
