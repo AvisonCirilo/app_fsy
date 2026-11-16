@@ -21,11 +21,12 @@ class AppPermissions {
   static List<String> _readAssignedCompanies(Map<String, dynamic> profile) {
     final raw = profile['companhiasResponsaveis'];
     if (raw is List) {
-      return raw
+      final companies = raw
           .map((value) => value.toString().trim())
           .where((value) => value.isNotEmpty)
           .toSet()
           .toList();
+      if (companies.isNotEmpty) return companies;
     }
 
     final singleCompany = (profile['companhia'] ?? '').toString().trim();
