@@ -265,6 +265,11 @@ class LocalAuthService {
         'Você não tem permissão para alterar esse usuário ou seu cargo.',
       );
     }
+    if (!permissions.isAdministrator && currentRole != newRole) {
+      throw const LocalAuthException(
+        'Somente o Administrador pode alterar o cargo de uma conta.',
+      );
+    }
 
     await _validarDuasCompanhiasSeAssistente({
       ...currentProfile,
