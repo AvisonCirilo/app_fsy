@@ -6,6 +6,7 @@ import '../../data/local_database.dart';
 import './admin/gerenciar_usuarios.dart';
 import 'admin/lista_jovens.dart';
 import 'admin/gerenciar_companhias.dart';
+import 'admin/gerenciar_assistentes.dart';
 import 'admin/mapa_alojamentos.dart';
 
 class AbaAdmin extends StatefulWidget {
@@ -20,6 +21,13 @@ class _AbaAdminState extends State<AbaAdmin> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+    );
+  }
+
+  void _abrirTelaGerenciarAssistentes() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const GerenciarAssistentes()),
     );
   }
 
@@ -115,16 +123,24 @@ class _AbaAdminState extends State<AbaAdmin> {
             ),
           ),
           const SizedBox(height: 10),
-          _construirBotaoAcao(
-            Icons.manage_accounts,
-            isAdmin ? 'Gerenciar Usuários' : 'Gerenciar Assistentes',
-            isAdmin
-                ? 'Gerenciar cargos, contas e acessos da equipe.'
-                : 'Cadastrar coordenadores assistentes e atribuir duas companhias.',
-            Colors.orange,
-            isEscuro,
-            _abrirTelaGerenciarUsuarios,
-          ),
+          if (isAdmin)
+            _construirBotaoAcao(
+              Icons.manage_accounts,
+              'Gerenciar Usuários',
+              'Gerenciar cargos, contas e acessos da equipe.',
+              Colors.orange,
+              isEscuro,
+              _abrirTelaGerenciarUsuarios,
+            ),
+          if (permissoes.canManageAssistantTeam)
+            _construirBotaoAcao(
+              Icons.groups,
+              'Gerenciar Assistentes',
+              'Cadastrar assistentes e atribuir duas companhias para cada um.',
+              Colors.teal,
+              isEscuro,
+              _abrirTelaGerenciarAssistentes,
+            ),
           _construirBotaoAcao(
             Icons.format_list_bulleted,
             'Lista de Jovens',
