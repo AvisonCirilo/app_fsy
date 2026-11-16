@@ -49,6 +49,21 @@ class LocalDatabase {
       }
     }
 
+    // Migração do perfil fictício usado nas versões locais anteriores:
+    // o assistente de demonstração passa a ter duas companhias atribuídas.
+    final assistenteDemo = _data['usuarios']?['demo_assistente'];
+    if (assistenteDemo != null &&
+        assistenteDemo['funcao'] == 'Coordenador Assistente' &&
+        (assistenteDemo['companhiasResponsaveis'] is! List ||
+            (assistenteDemo['companhiasResponsaveis'] as List).length != 2)) {
+      assistenteDemo['companhia'] = 'Companhia 01';
+      assistenteDemo['companhiasResponsaveis'] = [
+        'Companhia 01',
+        'Companhia 02',
+      ];
+      await _persist('usuarios');
+    }
+
     _initialized = true;
   }
 
