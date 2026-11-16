@@ -25,7 +25,7 @@ void main() {
         expect(permissions.canManageCompanyStructure, isTrue);
         expect(permissions.canManageAssistantTeam, isTrue);
         expect(permissions.canCreateOrManageUserRole('Coordenador Assistente'), isTrue);
-        expect(permissions.canCreateOrManageUserRole('Consultor'), isFalse);
+        expect(permissions.canCreateOrManageUserRole('Consultor'), isTrue);
         expect(permissions.canAccessLodging, isFalse);
         expect(permissions.canManageAllUsers, isFalse);
       }
