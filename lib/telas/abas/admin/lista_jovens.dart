@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../data/local_database.dart';
 
 class ListaJovensTela extends StatefulWidget {
   const ListaJovensTela({super.key});
@@ -11,7 +11,7 @@ class ListaJovensTela extends StatefulWidget {
 class _ListaJovensTelaState extends State<ListaJovensTela> {
   final TextEditingController _pesquisaController = TextEditingController();
 
-  // Lista de Consultores agora vem do Banco de Dados!
+  // Lista de Consultores agora vem do banco local!
   List<String> _consultoresDisponiveis = ["A Definir"];
 
   String _criterioOrdenacao = 'nome'; 
@@ -27,7 +27,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
   // LÊ OS UTILIZADORES DO BANCO PARA O MENU SUSPENSO
   // ==========================================
   void _carregarConsultoresDoBanco() {
-    FirebaseFirestore.instance.collection('usuarios').snapshots().listen((snapshot) {
+    LocalDatabase.instance.collection('usuarios').snapshots().listen((snapshot) {
       List<String> nomesLideranca = ["A Definir"];
       for (var doc in snapshot.docs) {
         if (doc.data().containsKey('nome')) {
@@ -255,7 +255,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                           Navigator.pop(context); // Fecha o painel primeiro
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Salvando jovem..."), backgroundColor: Colors.grey.shade700));
 
-                          // DADOS PARA GRAVAR NO FIRESTORE
+                          // DADOS PARA GRAVAR LOCALMENTE
                           Map<String, dynamic> dadosJovem = {
                             "nome": nomeCtrl.text,
                             "idade": idadeCtrl.text.isEmpty ? "0" : idadeCtrl.text,
@@ -270,10 +270,10 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
 
                           try {
                             if (isEdicao) {
-                              await FirebaseFirestore.instance.collection('jovens').doc(jovemAtual['id']).update(dadosJovem);
+                              await LocalDatabase.instance.collection('jovens').doc(jovemAtual['id']).update(dadosJovem);
                             } else {
-                              dadosJovem['criadoEm'] = FieldValue.serverTimestamp();
-                              await FirebaseFirestore.instance.collection('jovens').add(dadosJovem);
+                              dadosJovem['criadoEm'] = DateTime.now().toIso8601String();
+                              await LocalDatabase.instance.collection('jovens').add(dadosJovem);
                             }
                             if (mounted) {
                               // ignore: use_build_context_synchronously
@@ -461,8 +461,8 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
           // A MÁGICA EM TEMPO REAL
           // ==========================================
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('jovens').snapshots(),
+            child: StreamBuilder<LocalQuerySnapshot>(
+              stream: LocalDatabase.instance.collection('jovens').snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator(color: Colors.grey));
@@ -481,7 +481,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
                   );
                 }
 
-                // 1. Pega os dados do Firestore e converte para a nossa lista local
+                // 1. Pega os dados do banco local e converte para a nossa lista local
                 List<Map<String, dynamic>> listaLocal = snapshot.data!.docs.map((doc) {
                   var dados = doc.data() as Map<String, dynamic>;
                   dados['id'] = doc.id; // Guarda o ID único do Firebase
@@ -562,7 +562,7 @@ class _ListaJovensTelaState extends State<ListaJovensTela> {
 
                           if (confirmar) {
                             // APAGA NO BANCO DE DADOS
-                            await FirebaseFirestore.instance.collection('jovens').doc(jovem['id']).delete();
+                            await LocalDatabase.instance.collection('jovens').doc(jovem['id']).delete();
                             // ignore: use_build_context_synchronously
                             if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${jovem['nome']} foi removido."), backgroundColor: Colors.redAccent));
                             return true; // Deixa o Dismissible terminar a animação
