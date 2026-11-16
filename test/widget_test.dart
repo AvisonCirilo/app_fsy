@@ -7,12 +7,13 @@ import 'package:app_fsy/data/local_database.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('conta de demonstração autentica sem Firebase', () async {
+  setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
-
     await LocalDatabase.instance.initialize();
     await LocalAuthService.instance.initialize();
+  });
 
+  test('conta de demonstração autentica sem Firebase', () async {
     final usuario = await LocalAuthService.instance.signIn(
       'admin',
       'fsy2026',
