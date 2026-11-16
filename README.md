@@ -30,6 +30,35 @@ Todas as contas iniciais usam a senha **`fsy2026`**.
 
 As credenciais são públicas e servem exclusivamente para testes. O sistema local não oferece autenticação segura.
 
+## Matriz de permissões
+
+O acesso é definido pela responsabilidade de cada função:
+
+| Função | Permissões principais |
+| --- | --- |
+| Administrador | Acesso completo, incluindo contas, gestão do evento e alojamentos |
+| Diretor | Gestão geral do evento, cadastro de jovens, companhias e equipe de assistentes |
+| Coordenador | Gestão geral do evento, cadastro de jovens, companhias e equipe de assistentes |
+| Logística | Painel de hospedagem, consulta de quantitativos e alocação/transferência de quartos |
+| Coordenador Assistente | Gestão operacional de exatamente duas companhias atribuídas: metas e acompanhamento dos jovens vinculados |
+| Consultor | Acompanhamento da companhia associada ao próprio perfil |
+
+Diretores e Coordenadores podem cadastrar Coordenadores Assistentes e atribuir exatamente duas companhias diferentes a cada um. O assistente não pode cadastrar jovens no registro geral, criar ou renomear companhias, administrar usuários ou acessar outras companhias.
+
+A Logística não administra o cadastro geral de jovens nem a estrutura das companhias. Seu painel apresenta os quantitativos necessários à hospedagem e permite operar o mapa de alojamentos. O Administrador mantém acesso de supervisão ao mapa.
+
+A tela de permissões está centralizada em `lib/data/app_permissions.dart`. As telas administrativas e os serviços locais validam as operações de criação, edição e exclusão de contas.
+
+> Estas regras são aplicadas no cliente durante o desenvolvimento local. Antes de produção, devem ser replicadas e impostas pelo backend; esconder uma tela no aplicativo não é controle de segurança suficiente.
+
+## Gestão de equipe
+
+A tela **Gerenciar Assistentes** permite cadastrar e editar coordenadores assistentes, atribuindo duas companhias existentes. A atribuição fica no campo `companhiasResponsaveis` do perfil local.
+
+## Painel de Logística
+
+A função Logística recebe uma aba própria com os quantitativos de jovens cadastrados, jovens alojados, pendências de alojamento e quartos em uso. O mapa permite alocar ou transferir jovens entre quartos sem expor os campos de saúde e medicamentos.
+
 ## Dados locais
 
 A camada `lib/data/local_database.dart` fornece um armazenamento de demonstração para as coleções `usuarios`, `jovens` e `companhias`. As alterações são persistidas em `SharedPreferences` e não são sincronizadas entre dispositivos ou navegadores.
@@ -66,6 +95,7 @@ O comando `flutter pub get` atualiza o arquivo de resolução de dependências a
 ```text
 lib/
 ├── data/
+│   ├── app_permissions.dart
 │   ├── local_auth_service.dart
 │   └── local_database.dart
 ├── components/
@@ -77,9 +107,12 @@ lib/
         ├── aba_inicio.dart
         ├── aba_agenda.dart
         ├── aba_companhia.dart
+        ├── aba_companhias_assistente.dart
+        ├── aba_logistica.dart
         ├── aba_perfil.dart
         ├── aba_admin.dart
         └── admin/
+            └── gerenciar_assistentes.dart
 ```
 
 ## Retorno ao Firebase
