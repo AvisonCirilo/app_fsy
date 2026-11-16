@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/app_permissions.dart';
 import '../../data/local_database.dart';
 import '../../data/local_auth_service.dart';
 
@@ -33,6 +34,11 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
 
   // Atualiza a companhia no armazenamento local.
   Future<void> _salvarNomeCompanhia(String novoNome) async {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (!permissoes.canChangeCompanyStructure) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('perfil_companhia', novoNome); 
     
@@ -125,6 +131,15 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
 
   @override
   Widget build(BuildContext context) {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (permissoes.isAssistantCoordinator || permissoes.isLogistics) {
+      return const Center(
+        child: Text('Acesse a área correspondente à sua função no menu inferior.'),
+      );
+    }
+
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     Color corTextoSecundario = isEscuro ? Colors.white70 : Colors.black54;
 
@@ -164,15 +179,21 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
                           )
                         : Text(_companhiaAtual, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
                   ),
-                  IconButton(
-                    icon: Icon(_editandoCompanhia ? Icons.check_circle : Icons.edit, color: _editandoCompanhia ? Colors.green : Colors.grey),
-                    onPressed: () {
-                      setState(() {
-                        if (_editandoCompanhia) _salvarNomeCompanhia(_companhiaController.text);
-                        _editandoCompanhia = !_editandoCompanhia;
-                      });
-                    },
-                  )
+                  if (permissoes.canChangeCompanyStructure)
+                    IconButton(
+                      icon: Icon(
+                        _editandoCompanhia ? Icons.check_circle : Icons.edit,
+                        color: _editandoCompanhia ? Colors.green : Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          if (_editandoCompanhia) {
+                            _salvarNomeCompanhia(_companhiaController.text);
+                          }
+                          _editandoCompanhia = !_editandoCompanhia;
+                        });
+                      },
+                    )
                 ],
               ),
             ),
