@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../data/app_permissions.dart';
 import '../../../data/local_database.dart';
 import '../../../data/local_auth_service.dart'; 
 
@@ -92,8 +93,17 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade700, width: 1.5)),
                         prefixIcon: Icon(Icons.work, color: Colors.grey.shade700, size: 20),
                       ),
-                      items: ["Administrador", "Diretor", "Coordenador", "Coordenador Assistente", "Logística", "Consultor"]
-                          .map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+                      items: [
+                        "Administrador",
+                        "Diretor",
+                        "Coordenador",
+                        if (isEdicao &&
+                            funcaoSelecionada ==
+                                AppPermissions.assistantCoordinator)
+                          "Coordenador Assistente",
+                        "Logística",
+                        "Consultor",
+                      ].map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
                       onChanged: (v) => setStateSheet(() => funcaoSelecionada = v!),
                     ),
                     const SizedBox(height: 15),
@@ -213,6 +223,18 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
 
   @override
   Widget build(BuildContext context) {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (!permissoes.canManageAllUsers) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Gerenciar Usuários")),
+        body: const Center(
+          child: Text('Somente o Administrador pode gerenciar todas as contas.'),
+        ),
+      );
+    }
+
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
