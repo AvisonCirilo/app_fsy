@@ -389,14 +389,12 @@ class _AbaInicioState extends State<AbaInicio> {
         // A Logística visualiza os quantitativos necessários à hospedagem.
         Row(
           children: [
-            Expanded(
-              child: _construirCardRealTime(
-                "Jovens cadastrados",
-                Icons.face,
-                Colors.blue,
-                'jovens',
-                isEscuro,
-              ),
+            _construirCardRealTime(
+              "Jovens cadastrados",
+              Icons.face,
+              Colors.blue,
+              'jovens',
+              isEscuro,
             ),
           ],
         ),
