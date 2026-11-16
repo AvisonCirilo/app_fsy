@@ -24,10 +24,12 @@ void main() {
         expect(permissions.canManageYouthRegistry, isTrue);
         expect(permissions.canManageCompanyStructure, isTrue);
         expect(permissions.canManageAssistantTeam, isTrue);
+        expect(permissions.canManageUsers, isTrue);
         expect(permissions.canCreateOrManageUserRole('Coordenador Assistente'), isTrue);
         expect(permissions.canCreateOrManageUserRole('Consultor'), isTrue);
         expect(permissions.canAccessLodging, isFalse);
         expect(permissions.canManageAllUsers, isFalse);
+        expect(permissions.canCreateOrManageUserRole('Logística'), isFalse);
       }
     });
 
@@ -59,6 +61,7 @@ void main() {
       expect(permissions.canManageCompanyStructure, isFalse);
       expect(permissions.canAccessLodging, isFalse);
       expect(permissions.canAccessAdminPanel, isFalse);
+      expect(permissions.canCreateOrManageUserRole('Consultor'), isFalse);
     });
 
     test('Consultor permanece limitado à companhia do próprio perfil', () {
