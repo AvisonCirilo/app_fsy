@@ -301,7 +301,7 @@ class _GerenciarAssistentesState extends State<GerenciarAssistentes> {
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Excluir'),
           ),
