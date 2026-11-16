@@ -63,7 +63,11 @@ class LodgingStructure {
   static List<LodgingFloorGroup> groupByFloor(
     List<LocalDocumentSnapshot> youth,
   ) {
-    final grouped = <int?, Map<String, List<LocalDocumentSnapshot>>>{};
+    final grouped = <int?, Map<String, List<LocalDocumentSnapshot>>>{
+      1: <String, List<LocalDocumentSnapshot>>{},
+      2: <String, List<LocalDocumentSnapshot>>{},
+      3: <String, List<LocalDocumentSnapshot>>{},
+    };
 
     for (final person in youth) {
       if (!isAssigned(person)) continue;
