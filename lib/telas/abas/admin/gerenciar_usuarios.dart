@@ -186,10 +186,27 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                         ),
                         onPressed: () async {
-                          if (nomeCtrl.text.isEmpty || usuarioCtrl.text.isEmpty) return;
+                          if (nomeCtrl.text.trim().isEmpty ||
+                              usuarioCtrl.text.trim().isEmpty) {
+                            return;
+                          }
+                          if (!isEdicao && senhaCtrl.text.trim().length < 6) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text("A senha deve ter no mínimo 6 caracteres."),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
 
-                          Navigator.pop(context); 
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Salvando localmente..."), backgroundColor: Colors.grey.shade700));
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(
+                              content: const Text("Salvando localmente..."),
+                              backgroundColor: Colors.grey.shade700,
+                            ),
+                          );
 
                           try {
                             if (isEdicao) {
@@ -215,11 +232,6 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                                 },
                               );
                             } else {
-                              if (senhaCtrl.text.length < 6) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("A senha deve ter no mínimo 6 caracteres."), backgroundColor: Colors.redAccent));
-                                return;
-                              }
-                              
                               await LocalAuthService.instance.createAccount(
                                 username: usuarioCtrl.text.trim().toLowerCase(),
                                 password: senhaCtrl.text.trim(),
@@ -232,7 +244,7 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                                 },
                               );
                             }
-                            if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Utilizador ${isEdicao ? 'atualizado' : 'criado'} com sucesso!"), backgroundColor: Colors.green));
+                            if(mounted) ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text("Utilizador ${isEdicao ? 'atualizado' : 'criado'} com sucesso!"), backgroundColor: Colors.green));
                           } catch (e) {
                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao salvar: $e"), backgroundColor: Colors.redAccent));
                           }
