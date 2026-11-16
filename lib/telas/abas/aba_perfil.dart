@@ -6,7 +6,6 @@ import '../../data/local_database.dart';
 import '../../data/local_auth_service.dart';
 
 import '../../main.dart'; 
-import '../login_tela.dart';
 
 class AbaPerfil extends StatefulWidget {
   const AbaPerfil({super.key});
@@ -65,7 +64,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
   // ==========================================
   // SALVAR PERFIL (AGORA SINCRONIZA COM O FIRESTORE)
   // ==========================================
-  // Controles de aparência: não alteram o perfil nem os dados no Firebase.
+  // Controles de aparência: não alteram o perfil nem os dados locais.
   Future<void> _alterarSeguirTemaSistema(bool seguirSistema) async {
     final escuroAtual = Theme.of(context).brightness == Brightness.dark;
 
