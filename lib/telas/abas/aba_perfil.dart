@@ -135,7 +135,7 @@ class _AbaPerfilState extends State<AbaPerfil> {
   }
 
   // ==========================================
-  // LÓGICA DE TROCA DE SENHA COM FIREBASE
+  // LÓGICA DE TROCA DE SENHA LOCAL
   // ==========================================
   void _mostrarDialogoTrocarSenha() {
     final TextEditingController senhaAtualCtrl = TextEditingController();
