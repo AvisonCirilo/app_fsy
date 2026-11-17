@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: flutter-web-preview-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-web:
     runs-on: ubuntu-latest
