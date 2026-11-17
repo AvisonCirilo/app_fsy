@@ -173,3 +173,19 @@ O workflow manual `.github/workflows/flutter-web-pages.yml` prepara e publica a 
 A publicação é pública porque o repositório também é público. O aplicativo continua em modo de demonstração: credenciais são fictícias e dados ficam no armazenamento local de cada navegador/dispositivo. Não inserir dados reais de jovens, equipe ou saúde. Usuários em dispositivos diferentes ainda não compartilham os mesmos dados; isso só será possível depois da integração com um backend seguro.
 
 O build Web não remove os projetos Android/iOS existentes. Assim, podemos manter a possibilidade de gerar aplicativos nativos no futuro, sem exigir App Store para o acesso pelo navegador.
+
+
+### Testar no celular pela rede Wi-Fi local (sem publicar)
+
+É possível abrir a versão Web diretamente no Chrome do celular, sem instalar APK/IPA e sem publicar o site. O computador e o celular precisam estar conectados à mesma rede Wi-Fi.
+
+No terminal do VS Code, dentro da pasta do projeto, execute:
+
+```bash
+flutter pub get
+flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080
+```
+
+Descubra o IPv4 do computador (no Windows, execute `ipconfig` e procure o endereço IPv4 do adaptador Wi-Fi). No Chrome do celular, abra `http://IP_DO_COMPUTADOR:8080`, substituindo pelo endereço encontrado, por exemplo `http://192.168.1.10:8080`.
+
+Mantenha o terminal e o computador ligados durante o teste. Se o Windows Firewall perguntar, permita o Flutter/Dart na rede privada. Se a página não abrir, confirme que os dois dispositivos estão na mesma rede e que a porta 8080 não está bloqueada. Esse endereço é apenas local: não publica o aplicativo na internet. Para encerrar o servidor, pressione `Ctrl+C` no terminal.
