@@ -133,3 +133,43 @@ O modo local é temporário. Quando a interface e os fluxos estiverem aprovados,
 ## Licença
 
 Nenhum arquivo de licença foi identificado nesta revisão.
+
+
+## Aplicação Web (mobile-first)
+
+O projeto mantém Flutter e Dart e pode ser executado como aplicação Web. A experiência prioriza celulares, com navegação inferior em telas estreitas e navegação lateral em tablets/computadores.
+
+### Executar no navegador
+
+```bash
+flutter pub get
+flutter run -d chrome
+```
+
+### Gerar a versão Web
+
+```bash
+flutter build web --release
+```
+
+### Abrir no iPhone
+
+1. Publique a versão Web em um endereço HTTPS.
+2. Abra o endereço no Safari do iPhone.
+3. Toque em **Compartilhar** e escolha **Adicionar à Tela de Início**.
+4. Abra o ícone FSY pela tela inicial para utilizar a experiência em modo de aplicativo.
+
+O manifesto Web e as metatags para instalação no iOS estão em `web/manifest.json` e `web/index.html`. A instalação pela tela inicial não exige APK, IPA ou publicação na App Store.
+
+### Publicação pelo GitHub Pages
+
+O workflow manual `.github/workflows/flutter-web-pages.yml` prepara e publica a versão Web no endereço do projeto. Para habilitar a primeira publicação:
+
+1. No GitHub, abra **Settings → Pages**.
+2. Em **Build and deployment**, selecione **GitHub Actions** como fonte.
+3. Abra **Actions → Deploy FSY Web** e execute **Run workflow** na branch de desenvolvimento.
+4. Após a conclusão, o endereço será `https://avisoncirilo.github.io/app_fsy/`.
+
+A publicação é pública porque o repositório também é público. O aplicativo continua em modo de demonstração: credenciais são fictícias e dados ficam no armazenamento local de cada navegador/dispositivo. Não inserir dados reais de jovens, equipe ou saúde. Usuários em dispositivos diferentes ainda não compartilham os mesmos dados; isso só será possível depois da integração com um backend seguro.
+
+O build Web não remove os projetos Android/iOS existentes. Assim, podemos manter a possibilidade de gerar aplicativos nativos no futuro, sem exigir App Store para o acesso pelo navegador.
