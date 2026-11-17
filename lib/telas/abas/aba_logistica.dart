@@ -51,12 +51,6 @@ class AbaLogistica extends StatelessWidget {
                 Row(
                   children: [
                     Icon(icone, color: cor, size: 25),
-                    const Spacer(),
-                    Icon(
-                      Icons.open_in_new,
-                      size: 15,
-                      color: isEscuro ? Colors.white38 : Colors.black38,
-                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
