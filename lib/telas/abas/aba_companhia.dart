@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../data/app_permissions.dart';
+import '../../data/local_database.dart';
+import '../../data/local_auth_service.dart';
 
 class AbaCompanhia extends StatefulWidget {
   const AbaCompanhia({super.key});
@@ -31,8 +32,13 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
     });
   }
 
-  // Atualiza a companhia localmente E no Firebase!
+  // Atualiza a companhia no armazenamento local.
   Future<void> _salvarNomeCompanhia(String novoNome) async {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (!permissoes.canChangeCompanyStructure) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('perfil_companhia', novoNome); 
     
@@ -40,10 +46,10 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
       _companhiaAtual = novoNome;
     });
 
-    User? usuarioLogado = FirebaseAuth.instance.currentUser;
+    final usuarioLogado = LocalAuthService.instance.currentUser;
     if (usuarioLogado != null) {
       try {
-        await FirebaseFirestore.instance.collection('usuarios').doc(usuarioLogado.uid).update({
+        await LocalDatabase.instance.collection('usuarios').doc(usuarioLogado.uid).update({
           'companhia': novoNome,
         });
       } catch (e) {
@@ -53,7 +59,7 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
   }
 
   // ==========================================
-  // LÓGICA DE METAS PARTILHADAS (FIREBASE)
+  // LÓGICA DE METAS PARTILHADAS (LOCAL)
   // ==========================================
   void _mostrarDialogoNovaMeta(String ciaDocId, List metasAtuais) {
     final TextEditingController novaMetaController = TextEditingController();
@@ -95,12 +101,12 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
                 if (novaMetaController.text.trim().isNotEmpty) {
                   Navigator.pop(context);
                   
-                  // Adiciona a nova meta à lista existente e envia pro Firebase
+                  // Adiciona a nova meta à lista existente e salva localmente
                   metasAtuais.add({
                     "texto": novaMetaController.text.trim(),
                     "concluido": false,
                   });
-                  await FirebaseFirestore.instance.collection('companhias').doc(ciaDocId).update({
+                  await LocalDatabase.instance.collection('companhias').doc(ciaDocId).update({
                     'metas': metasAtuais
                   });
                 }
@@ -115,16 +121,25 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
 
   Future<void> _alternarMeta(String ciaDocId, List metasAtuais, int index, bool concluido) async {
     metasAtuais[index]["concluido"] = concluido;
-    await FirebaseFirestore.instance.collection('companhias').doc(ciaDocId).update({'metas': metasAtuais});
+    await LocalDatabase.instance.collection('companhias').doc(ciaDocId).update({'metas': metasAtuais});
   }
 
   Future<void> _removerMeta(String ciaDocId, List metasAtuais, int index) async {
     metasAtuais.removeAt(index);
-    await FirebaseFirestore.instance.collection('companhias').doc(ciaDocId).update({'metas': metasAtuais});
+    await LocalDatabase.instance.collection('companhias').doc(ciaDocId).update({'metas': metasAtuais});
   }
 
   @override
   Widget build(BuildContext context) {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (permissoes.isAssistantCoordinator || permissoes.isLogistics) {
+      return const Center(
+        child: Text('Acesse a área correspondente à sua função no menu inferior.'),
+      );
+    }
+
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     Color corTextoSecundario = isEscuro ? Colors.white70 : Colors.black54;
 
@@ -164,15 +179,21 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
                           )
                         : Text(_companhiaAtual, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
                   ),
-                  IconButton(
-                    icon: Icon(_editandoCompanhia ? Icons.check_circle : Icons.edit, color: _editandoCompanhia ? Colors.green : Colors.grey),
-                    onPressed: () {
-                      setState(() {
-                        if (_editandoCompanhia) _salvarNomeCompanhia(_companhiaController.text);
-                        _editandoCompanhia = !_editandoCompanhia;
-                      });
-                    },
-                  )
+                  if (permissoes.canChangeCompanyStructure)
+                    IconButton(
+                      icon: Icon(
+                        _editandoCompanhia ? Icons.check_circle : Icons.edit,
+                        color: _editandoCompanhia ? Colors.green : Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          if (_editandoCompanhia) {
+                            _salvarNomeCompanhia(_companhiaController.text);
+                          }
+                          _editandoCompanhia = !_editandoCompanhia;
+                        });
+                      },
+                    )
                 ],
               ),
             ),
@@ -180,10 +201,10 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
           const SizedBox(height: 30),
 
           // ==========================================
-          // METAS DA COMPANHIA (Checklist via Firestore)
+          // METAS DA COMPANHIA (Checklist local)
           // ==========================================
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('companhias').where('nome', isEqualTo: _companhiaAtual).limit(1).snapshots(),
+          StreamBuilder<LocalQuerySnapshot>(
+            stream: LocalDatabase.instance.collection('companhias').where('nome', isEqualTo: _companhiaAtual).limit(1).snapshots(),
             builder: (context, snapshot) {
               
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -288,8 +309,8 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
           // ==========================================
           const Text("Equipa de Liderança", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
           const SizedBox(height: 10),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('usuarios').where('companhia', isEqualTo: _companhiaAtual).snapshots(),
+          StreamBuilder<LocalQuerySnapshot>(
+            stream: LocalDatabase.instance.collection('usuarios').where('companhia', isEqualTo: _companhiaAtual).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) return const CircularProgressIndicator(color: Colors.blue);
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text("Nenhum líder associado a esta companhia.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic));
@@ -319,8 +340,8 @@ class _AbaCompanhiaState extends State<AbaCompanhia> {
           // ==========================================
           const Text("Jovens da Companhia", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.brown)),
           const SizedBox(height: 10),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('jovens').where('companhia', isEqualTo: _companhiaAtual).snapshots(),
+          StreamBuilder<LocalQuerySnapshot>(
+            stream: LocalDatabase.instance.collection('jovens').where('companhia', isEqualTo: _companhiaAtual).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) return const CircularProgressIndicator(color: Colors.brown);
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text("Nenhum jovem associado a esta companhia.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic));

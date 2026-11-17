@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart'; 
+import '../../../data/app_permissions.dart';
+import '../../../data/local_database.dart';
+import '../../../data/local_auth_service.dart'; 
 
 class GerenciarUsuarios extends StatefulWidget {
   const GerenciarUsuarios({super.key});
@@ -24,9 +24,14 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
   }
 
   // ==========================================
-  // PAINEL INTELIGENTE (CRIAR E EDITAR NO FIRESTORE)
+  // PAINEL INTELIGENTE (CRIAR E EDITAR NO BANCO LOCAL)
   // ==========================================
-  void _mostrarPainelUsuario({DocumentSnapshot? usuarioAtual}) {
+  void _mostrarPainelUsuario({LocalDocumentSnapshot? usuarioAtual}) {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    final isAdmin = permissoes.canManageAllUsers;
+
     bool isEdicao = usuarioAtual != null; 
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
     bool ocultarSenha = true; 
@@ -79,24 +84,60 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                     _construirCampo("Nome Completo", nomeCtrl, Icons.badge, isEscuro),
                     const SizedBox(height: 15),
                     
-                    // MENU ATUALIZADO COM OS NOVOS CARGOS
-                    DropdownButtonFormField<String>(
-                      value: funcaoSelecionada,
-                      dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
-                      style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
-                      icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade700),
-                      decoration: InputDecoration(
-                        labelText: "Função / Cargo",
-                        labelStyle: TextStyle(color: Colors.grey.shade700),
-                        filled: true, fillColor: isEscuro ? Colors.black26 : Colors.grey.shade100,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade700, width: 1.5)),
-                        prefixIcon: Icon(Icons.work, color: Colors.grey.shade700, size: 20),
+                    if (isAdmin)
+                      DropdownButtonFormField<String>(
+                        value: funcaoSelecionada,
+                        dropdownColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                        style: TextStyle(color: isEscuro ? Colors.white : Colors.black87),
+                        icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade700),
+                        decoration: InputDecoration(
+                          labelText: "Função / Cargo",
+                          labelStyle: TextStyle(color: Colors.grey.shade700),
+                          filled: true,
+                          fillColor: isEscuro ? Colors.black26 : Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.work,
+                            color: Colors.grey.shade700,
+                            size: 20,
+                          ),
+                        ),
+                        items: [
+                          "Administrador",
+                          "Diretor",
+                          "Coordenador",
+                          if (isEdicao &&
+                              funcaoSelecionada ==
+                                  AppPermissions.assistantCoordinator)
+                            "Coordenador Assistente",
+                          "Logística",
+                          "Consultor",
+                        ].map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+                        onChanged: (v) =>
+                            setStateSheet(() => funcaoSelecionada = v!),
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: isEscuro ? Colors.black26 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.person_outline, color: Colors.blue),
+                            SizedBox(width: 10),
+                            Text(
+                              "Cargo: Consultor",
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
                       ),
-                      items: ["Administrador", "Diretor", "Coordenador", "Coordenador Assistente", "Logística", "Consultor"]
-                          .map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
-                      onChanged: (v) => setStateSheet(() => funcaoSelecionada = v!),
-                    ),
                     const SizedBox(height: 15),
 
                     Row(
@@ -145,47 +186,65 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                         ),
                         onPressed: () async {
-                          if (nomeCtrl.text.isEmpty || usuarioCtrl.text.isEmpty) return;
+                          if (nomeCtrl.text.trim().isEmpty ||
+                              usuarioCtrl.text.trim().isEmpty) {
+                            return;
+                          }
+                          if (!isEdicao && senhaCtrl.text.trim().length < 6) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text("A senha deve ter no mínimo 6 caracteres."),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
 
-                          Navigator.pop(context); 
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Salvando no servidor..."), backgroundColor: Colors.grey.shade700));
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(
+                              content: const Text("Salvando localmente..."),
+                              backgroundColor: Colors.grey.shade700,
+                            ),
+                          );
 
                           try {
                             if (isEdicao) {
-                              await FirebaseFirestore.instance.collection('usuarios').doc(usuarioAtual.id).update({
-                                'nome': nomeCtrl.text,
-                                'funcao': funcaoSelecionada,
-                                'saude': saudeCtrl.text,
-                                'medicamento': medicamentoCtrl.text,
-                                'adjunta': adjuntaCtrl.text,
-                                'qtdJovens': qtdJovensCtrl.text,
-                                'quarto': quartoCtrl.text,
-                              });
-                            } else {
-                              if (senhaCtrl.text.length < 6) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("A senha deve ter no mínimo 6 caracteres."), backgroundColor: Colors.redAccent));
-                                return;
-                              }
-                              
-                              FirebaseApp appSecundario = await Firebase.initializeApp(name: 'AppSecundario', options: Firebase.app().options);
-                              UserCredential cred = await FirebaseAuth.instanceFor(app: appSecundario).createUserWithEmailAndPassword(
-                                email: "${usuarioCtrl.text.trim().toLowerCase()}@fsy.com", 
-                                password: senhaCtrl.text.trim()
+                              await LocalAuthService.instance.updateAccountProfile(
+                                uid: usuarioAtual.id,
+                                updates: {
+                                  'nome': nomeCtrl.text,
+                                  'funcao': funcaoSelecionada,
+                                  'saude': saudeCtrl.text,
+                                  'medicamento': medicamentoCtrl.text,
+                                  'adjunta': adjuntaCtrl.text,
+                                  'qtdJovens': qtdJovensCtrl.text,
+                                  'quarto': quartoCtrl.text,
+                                  'companhiasResponsaveis':
+                                      funcaoSelecionada ==
+                                                  AppPermissions.assistantCoordinator &&
+                                              usuarioAtual.data()['companhiasResponsaveis']
+                                                  is List
+                                          ? List<String>.from(
+                                              usuarioAtual.data()['companhiasResponsaveis'],
+                                            )
+                                          : <String>[],
+                                },
                               );
-                              
-                              await FirebaseFirestore.instance.collection('usuarios').doc(cred.user!.uid).set({
-                                'nome': nomeCtrl.text,
-                                'funcao': funcaoSelecionada,
-                                'usuario': usuarioCtrl.text.trim().toLowerCase(),
-                                'saude': saudeCtrl.text,
-                                'medicamento': medicamentoCtrl.text,
-                                'companhia': 'A Definir', 
-                                'criadoEm': FieldValue.serverTimestamp(),
-                              });
-                              
-                              await appSecundario.delete(); 
+                            } else {
+                              await LocalAuthService.instance.createAccount(
+                                username: usuarioCtrl.text.trim().toLowerCase(),
+                                password: senhaCtrl.text.trim(),
+                                profile: {
+                                  'nome': nomeCtrl.text,
+                                  'funcao': funcaoSelecionada,
+                                  'saude': saudeCtrl.text,
+                                  'medicamento': medicamentoCtrl.text,
+                                  'companhia': 'A Definir',
+                                },
+                              );
                             }
-                            if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Utilizador ${isEdicao ? 'atualizado' : 'criado'} com sucesso!"), backgroundColor: Colors.green));
+                            if(mounted) ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text("Utilizador ${isEdicao ? 'atualizado' : 'criado'} com sucesso!"), backgroundColor: Colors.green));
                           } catch (e) {
                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao salvar: $e"), backgroundColor: Colors.redAccent));
                           }
@@ -220,23 +279,51 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
 
   @override
   Widget build(BuildContext context) {
+    final permissoes = AppPermissions.fromProfile(
+      LocalAuthService.instance.currentUser?.profile ?? {},
+    );
+    if (!permissoes.canManageUsers) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Equipe")),
+        body: const Center(
+          child: Text('Você não tem permissão para gerenciar esta equipe.'),
+        ),
+      );
+    }
+
+    final isAdmin = permissoes.canManageAllUsers;
     bool isEscuro = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Gerenciar Usuários")),
+      appBar: AppBar(
+        title: Text(isAdmin ? "Gerenciar Usuários" : "Gerenciar Consultores"),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _mostrarPainelUsuario(), 
         backgroundColor: Colors.grey.shade700, foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add, size: 20),
         label: const Text("Novo", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('usuarios').snapshots(),
+      body: StreamBuilder<LocalQuerySnapshot>(
+        stream: LocalDatabase.instance.collection('usuarios').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.amber));
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text("Nenhum utilizador encontrado.", style: TextStyle(color: Colors.grey.shade600)));
 
-          final usuarios = snapshot.data!.docs;
+          final usuarios = snapshot.data!.docs.where((usuario) {
+            return isAdmin || usuario['funcao'] == AppPermissions.consultant;
+          }).toList();
+
+          if (usuarios.isEmpty) {
+            return Center(
+              child: Text(
+                isAdmin
+                    ? "Nenhum utilizador encontrado."
+                    : "Nenhum consultor cadastrado.",
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            );
+          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -274,7 +361,7 @@ class _GerenciarUsuariosTelaState extends State<GerenciarUsuarios> {
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                               onPressed: () async {
                                 Navigator.of(context).pop(true);
-                                await FirebaseFirestore.instance.collection('usuarios').doc(usuario.id).delete();
+                                await LocalAuthService.instance.deleteAccount(usuario.id);
                               }, 
                               child: const Text("Excluir", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),

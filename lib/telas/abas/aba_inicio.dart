@@ -2,11 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/local_database.dart';
 import 'admin/mapa_alojamentos.dart';
 
 // Importa as telas administrativas para criar atalhos para os líderes
-import 'admin/lista_jovens.dart';
 import 'admin/gerenciar_companhias.dart';
 
 class AbaInicio extends StatefulWidget {
@@ -300,8 +299,8 @@ class _AbaInicioState extends State<AbaInicio> {
       children: [
         Row(children: [Icon(iconeJovens, color: corIconeJovens, size: 22), const SizedBox(width: 8), Text(tituloJovens, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]),
         const SizedBox(height: 10),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('jovens').where('consultor', isEqualTo: _nomeConsultorLogado).snapshots(),
+        StreamBuilder<LocalQuerySnapshot>(
+          stream: LocalDatabase.instance.collection('jovens').where('consultor', isEqualTo: _nomeConsultorLogado).snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text("Nenhum jovem associado a você ainda.");
@@ -329,17 +328,36 @@ class _AbaInicioState extends State<AbaInicio> {
   }
 
   Widget _painelCoordenadorAssistente(bool isEscuro) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(children: [Icon(Icons.flag, color: Colors.green, size: 22), SizedBox(width: 8), Text("Minhas Companhias", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]),
-        const SizedBox(height: 10),
-        const Text("Como Coordenador Assistente, você acompanha de perto as suas Companhias designadas e o progresso das Atividades.", style: TextStyle(color: Colors.grey)),
-        const SizedBox(height: 15),
-        _botaoAtalho("Visão de Companhias", "Ver atividades e Consultores responsáveis", Icons.groups, Colors.green, isEscuro, () {
-           Navigator.push(context, MaterialPageRoute(builder: (context) => const GerenciarCompanhias()));
-        }),
-      ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isEscuro ? Colors.white12 : Colors.grey.shade200,
+        ),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.groups, color: Colors.green, size: 22),
+              SizedBox(width: 8),
+              Text(
+                "Suas duas companhias",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Você pode acompanhar jovens, metas e atividades somente das duas companhias atribuídas a você. Acesse a aba Companhias no menu inferior.",
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 
@@ -368,26 +386,31 @@ class _AbaInicioState extends State<AbaInicio> {
         const Text("Visão geral do evento em Tempo Real", style: TextStyle(color: Colors.grey)),
         const SizedBox(height: 15),
         
-        // ==========================================
-        // OS CARDS EM TEMPO REAL PARA A LOGÍSTICA!
-        // ==========================================
+        // A Logística visualiza os quantitativos necessários à hospedagem.
         Row(
           children: [
-            _construirCardRealTime("Jovens", Icons.face, Colors.blue, 'jovens', isEscuro),
-            const SizedBox(width: 10),
-            _construirCardRealTime("Equipe", Icons.badge, Colors.teal, 'usuarios', isEscuro),
-            const SizedBox(width: 10),
-            _construirCardRealTime("Companhias", Icons.flag, Colors.orange, 'companhias', isEscuro),
+            _construirCardRealTime(
+              "Jovens cadastrados",
+              Icons.face,
+              Colors.blue,
+              'jovens',
+              isEscuro,
+            ),
           ],
         ),
         const SizedBox(height: 25),
-
-        _botaoAtalho("Lista Geral de Jovens", "Filtrar por nome, idade ou alergias", Icons.format_list_bulleted, Colors.green, isEscuro, () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ListaJovensTela()));
-        }),
-        _botaoAtalho("Mapa de Alojamentos", "Distribuição de quartos", Icons.hotel, Colors.indigo, isEscuro, () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const MapaAlojamentos()));
-          }
+        _botaoAtalho(
+          "Mapa de Alojamentos",
+          "Distribuição de quartos e jovens sem alojamento",
+          Icons.hotel,
+          Colors.indigo,
+          isEscuro,
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MapaAlojamentos()),
+            );
+          },
         ),
       ],
     );
@@ -396,7 +419,7 @@ class _AbaInicioState extends State<AbaInicio> {
   Widget _painelAdmin() {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 10),
-      child: Text("Como Administrador de Sistemas, utilize a 'Aba Liderança' no menu inferior para ter acesso irrestrito aos controles.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+      child: Text("Como Administrador de Sistemas, utilize a aba 'Gestão' no menu inferior para ter acesso irrestrito aos controles.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
     );
   }
 
@@ -427,8 +450,8 @@ class _AbaInicioState extends State<AbaInicio> {
           border: Border.all(color: isEscuro ? Colors.white12 : Colors.grey.shade200),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
         ),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection(colecao).snapshots(),
+        child: StreamBuilder<LocalQuerySnapshot>(
+          stream: LocalDatabase.instance.collection(colecao).snapshots(),
           builder: (context, snapshot) {
             String valor = "..."; 
             if (snapshot.hasData) {
