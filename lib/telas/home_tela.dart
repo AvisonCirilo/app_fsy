@@ -117,6 +117,18 @@ class _TelaInicialState extends State<TelaInicial> {
     setState(() => _indiceAtual = indice);
   }
 
+  List<NavigationRailDestination> _destinosDaNavegacao() {
+    return _itensBarra
+        .map(
+          (item) => NavigationRailDestination(
+            icon: item.icon,
+            selectedIcon: item.activeIcon,
+            label: Text(item.label ?? ''),
+          ),
+        )
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_carregando) {
@@ -126,6 +138,12 @@ class _TelaInicialState extends State<TelaInicial> {
     }
 
     final isEscuro = Theme.of(context).brightness == Brightness.dark;
+    final largura = MediaQuery.sizeOf(context).width;
+    final usarNavegacaoLateral = largura >= 800;
+    final menuExpandido = largura >= 1100;
+    final corMenu = isEscuro ? const Color(0xFF1E1E1E) : Colors.white;
+    final corSelecionada =
+        isEscuro ? Colors.lightBlueAccent : const Color(0xFF003366);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -142,22 +160,75 @@ class _TelaInicialState extends State<TelaInicial> {
         elevation: 1,
         actions: [
           IconButton(
+            tooltip: 'Notificações',
             icon: const Icon(Icons.notifications_none),
             onPressed: () {},
           ),
         ],
       ),
-      body: _secoes[_indiceAtual],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: isEscuro ? const Color(0xFF1E1E1E) : Colors.white,
-        selectedItemColor:
-            isEscuro ? Colors.lightBlueAccent : const Color(0xFF003366),
-        unselectedItemColor: isEscuro ? Colors.white54 : Colors.grey,
-        currentIndex: _indiceAtual,
-        onTap: _aoTocarNaAba,
-        items: _itensBarra,
+      body: Row(
+        children: [
+          if (usarNavegacaoLateral) ...[
+            NavigationRail(
+              selectedIndex: _indiceAtual,
+              onDestinationSelected: _aoTocarNaAba,
+              extended: menuExpandido,
+              labelType: menuExpandido
+                  ? NavigationRailLabelType.none
+                  : NavigationRailLabelType.all,
+              minWidth: 76,
+              minExtendedWidth: 220,
+              backgroundColor: corMenu,
+              selectedIconTheme: IconThemeData(color: corSelecionada),
+              unselectedIconTheme: IconThemeData(
+                color: isEscuro ? Colors.white54 : Colors.grey.shade600,
+              ),
+              selectedLabelTextStyle: TextStyle(
+                color: corSelecionada,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelTextStyle: TextStyle(
+                color: isEscuro ? Colors.white60 : Colors.black54,
+              ),
+              leading: menuExpandido
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        height: 42,
+                        fit: BoxFit.contain,
+                      ),
+                    )
+                  : const SizedBox(height: 12),
+              destinations: _destinosDaNavegacao(),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: isEscuro ? Colors.white12 : Colors.black12,
+            ),
+          ],
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1440),
+                child: _secoes[_indiceAtual],
+              ),
+            ),
+          ),
+        ],
       ),
+      bottomNavigationBar: usarNavegacaoLateral
+          ? null
+          : BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: corMenu,
+              selectedItemColor: corSelecionada,
+              unselectedItemColor: isEscuro ? Colors.white54 : Colors.grey,
+              currentIndex: _indiceAtual,
+              onTap: _aoTocarNaAba,
+              items: _itensBarra,
+            ),
     );
   }
 }
