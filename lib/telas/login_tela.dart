@@ -49,82 +49,112 @@ class _TelaLoginState extends State<TelaLogin> {
   }
 
   void _mostrarAviso(String mensagem, {Color cor = Colors.redAccent}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensagem), backgroundColor: cor));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: cor),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isEscuro = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
+      backgroundColor: isEscuro
           ? const Color(0xFF121212)
           : const Color.fromARGB(255, 242, 245, 207),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-              child: SizedBox(
-                width: 400,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/images/logo.png', height: 280),
-                    const SizedBox(height: 30),
-                    
-                    MeuCampoTexto(
-                      controller: _userController,
-                      hintText: 'User (Ex: admin)',
-                      obscureText: false,
-                      icon: Icons.person_outline,
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    MeuCampoTexto(
-                      controller: _senhaController,
-                      hintText: 'Password',
-                      obscureText: true,
-                      icon: Icons.key,
-                    ),
-                    const SizedBox(height: 10),
-                    
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final telaCompacta =
+                constraints.maxWidth < 380 || constraints.maxHeight < 700;
+            final alturaLogo = telaCompacta ? 180.0 : 230.0;
+
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        GestureDetector(
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TelaRecuperarSenha())),
-                          child: Text(
-                            'Forget Password',
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white70
-                                  : Colors.grey[700],
-                              fontWeight: FontWeight.bold,
+                        SizedBox(
+                          height: alturaLogo,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        SizedBox(height: telaCompacta ? 18 : 28),
+                        MeuCampoTexto(
+                          controller: _userController,
+                          hintText: 'User (Ex: admin)',
+                          obscureText: false,
+                          icon: Icons.person_outline,
+                        ),
+                        const SizedBox(height: 15),
+                        MeuCampoTexto(
+                          controller: _senhaController,
+                          hintText: 'Password',
+                          obscureText: true,
+                          icon: Icons.key,
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const TelaRecuperarSenha(),
+                                ),
+                              ),
+                              child: Text(
+                                'Forget Password',
+                                style: TextStyle(
+                                  color: isEscuro
+                                      ? Colors.white70
+                                      : Colors.grey[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 25),
+                        _carregando
+                            ? const CircularProgressIndicator(
+                                color: Colors.amber,
+                              )
+                            : MeuBotao(
+                                texto: 'LOGIN',
+                                onTap: _fazerLoginLocal,
+                              ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Ambiente de desenvolvimento • dados locais',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isEscuro
+                                ? Colors.white54
+                                : Colors.black54,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 25),
-                    
-                    _carregando
-                        ? const CircularProgressIndicator(color: Colors.amber)
-                        : MeuBotao(texto: 'LOGIN', onTap: _fazerLoginLocal),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Ambiente de desenvolvimento • dados locais',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white54
-                            : Colors.black54,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
